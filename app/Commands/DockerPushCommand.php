@@ -7,16 +7,16 @@ use App\Helpers\Checks;
 use App\Helpers\NetsellsFile;
 use LaravelZero\Framework\Commands\Command;
 
-class DockerBuildCommand extends Command
+class DockerPushCommand extends Command
 {
     /**
      * The signature of the command.
      *
      * @var string
      */
-    protected $signature = 'docker:build
+    protected $signature = 'docker:push
         {--tag= : The tag that should be built with the images. Defaults to the current commit SHA}
-        {--service=* : The service that should be built. Not defining this will build all services (which will probably take longer than it could)}
+        {--service=* : The service that should be pushed. Not defining this will push all services}
     ';
 
     /**
@@ -24,7 +24,7 @@ class DockerBuildCommand extends Command
      *
      * @var string
      */
-    protected $description = 'Builds docker-compose ready for prod.';
+    protected $description = 'Pushes docker-compose created images to the NS AWS account.';
 
     /** @var Git $git */
     protected $git;
@@ -51,7 +51,7 @@ class DockerBuildCommand extends Command
      */
     public function handle()
     {
-        $requiredBinaries = ['docker', 'docker-compose'];
+        $requiredBinaries = ['docker', 'docker-compose', 'aws'];
 
         if ($this->checks->checkAndReportMissingBinaries($this, $requiredBinaries)) {
             return 1;
@@ -68,26 +68,26 @@ class DockerBuildCommand extends Command
 
         if (count($services) == 0) {
             // Generic full file build as we have no services
-            $this->info("Building docker images for all services with tag {$tag}");
-            $this->callBuild($tag);
+            $this->info("Pushing docker images for all services with tag {$tag}");
+            $this->callPush($tag);
         }
 
         // We've been provided services, we'll run the command for each
-        $this->info("Building docker images for services with tag {$tag}: " . implode(',', $services));
+        $this->info("Pushing docker images for services with tag {$tag}: " . implode(',', $services));
 
         foreach ($services as $service) {
-            $this->callBuild($tag, $service);
+            $this->callPush($tag, $service);
         }
     }
 
-    protected function callBuild(string $tag, string $service = null): string
+    protected function callPush(string $tag, string $service = null): string
     {
         putenv("TAG={$tag}");
         return shell_exec("
             docker-compose \
                 -f docker-compose.yml \
                 -f docker-compose-prod.yml \
-                build --no-cache {$service}
+                push {$service}
         ");
     }
 }
