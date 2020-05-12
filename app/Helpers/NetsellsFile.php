@@ -31,7 +31,7 @@ class NetsellsFile
         try {
             $this->fileData = Yaml::parse($fileContents);
         } catch (ParseException $exception) {
-            //
+            // Leave $this->fileData null
         }
     }
 
