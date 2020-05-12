@@ -15,7 +15,7 @@ class DockerPushCommand extends Command
      *
      * @var string
      */
-    protected $signature = 'docker:push';
+    protected $signature = 'docker:aws:push';
 
     /**
      * The description of the command.

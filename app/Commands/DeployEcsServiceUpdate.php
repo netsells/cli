@@ -15,14 +15,14 @@ class DeployEcsServiceUpdate extends Command
      *
      * @var string
      */
-    protected $signature = 'docker:deploy-ecs-service-update';
+    protected $signature = 'docker:aws:deploy-update';
 
     /**
      * The description of the command.
      *
      * @var string
      */
-    protected $description = 'Updates ECS task definition with new image references and updates the service';
+    protected $description = 'Updates task definition and service';
 
     /** @var Helpers $helpers */
     protected $helpers;

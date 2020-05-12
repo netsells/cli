@@ -23,9 +23,9 @@ TODO.
 
   USAGE: netsells <command> [options] [arguments]
 
-  docker:build                     Builds docker-compose ready for prod.
-  docker:deploy-ecs-service-update Updates ECS task definition with new image references and updates the service
-  docker:push                      Pushes docker-compose created images to ECR.
+  docker:aws:deploy-update Updates task definition and service
+  docker:aws:push          Pushes docker-compose created images to ECR.
+  docker:build             Builds docker-compose ready for prod.
 ```
 
 ## Netsells File Reference
