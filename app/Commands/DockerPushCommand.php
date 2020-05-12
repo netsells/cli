@@ -75,16 +75,18 @@ class DockerPushCommand extends Command
 
         if (count($services) == 0) {
             // Generic full file build as we have no services
-            $this->info("Pushing docker images for all services with tag {$tag}");
+            $this->line("Pushing docker images for all services with tag {$tag}");
             $this->callPush($tag);
         }
 
         // We've been provided services, we'll run the command for each
-        $this->info("Pushing docker images for services with tag {$tag}: " . implode(',', $services));
+        $this->line("Pushing docker images for services with tag {$tag}: " . implode(',', $services));
 
         foreach ($services as $service) {
             $this->callPush($tag, $service);
         }
+
+        $this->info("Docker images pushed.");
     }
 
     protected function callPush(string $tag, string $service = null): void

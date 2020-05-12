@@ -63,16 +63,18 @@ class DockerBuildCommand extends Command
 
         if (count($services) == 0) {
             // Generic full file build as we have no services
-            $this->info("Building docker images for all services with tag {$tag}");
+            $this->line("Building docker images for all services with tag {$tag}");
             $this->callBuild($tag);
         }
 
         // We've been provided services, we'll run the command for each
-        $this->info("Building docker images for services with tag {$tag}: " . implode(',', $services));
+        $this->line("Building docker images for services with tag {$tag}: " . implode(',', $services));
 
         foreach ($services as $service) {
             $this->callBuild($tag, $service);
         }
+
+        $this->info("Docker images built.");
     }
 
     protected function callBuild(string $tag, string $service = null): void
