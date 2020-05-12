@@ -11,6 +11,9 @@ class NetsellsFile
     public const DOCKER_SERVICES = 'docker.services';
     public const DOCKER_AWS_REGION = 'docker.aws.region';
     public const DOCKER_AWS_ACCOUNT_ID = 'docker.aws.account-id';
+    public const DOCKER_ECS_SERVICE = 'docker.aws.ecs.service';
+    public const DOCKER_ECS_CLUSTER = 'docker.aws.ecs.cluster';
+    public const DOCKER_ECS_TASK_DEFINITION = 'docker.aws.ecs.task-definition';
 
     protected $fileName = '.netsells.yml';
     protected $fileData = null;

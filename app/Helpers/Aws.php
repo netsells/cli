@@ -2,22 +2,44 @@
 
 namespace App\Helpers;
 
-use Symfony\Component\Process\Process;
+use App\Helpers\Aws\Ecs;
 use LaravelZero\Framework\Commands\Command;
 use Symfony\Component\Console\Input\InputOption;
+use Symfony\Component\Process\Process;
 
 class Aws
 {
-    protected const DEFAULT_REGION = 'eu-west-2';
-    protected const DEFAULT_ACCOUNT_ID = '422860057079';
-    protected const DEFAULT_PROFILE = 'default';
+    public const DEFAULT_REGION = 'eu-west-2';
+    public const DEFAULT_ACCOUNT_ID = '422860057079';
+    public const DEFAULT_PROFILE = 'default';
 
     /** @var Helpers $helpers */
-    protected $helpers;
+    public $helpers;
 
     public function __construct(Helpers $helpers)
     {
         $this->helpers = $helpers;
+    }
+
+    public function ecs(): Ecs
+    {
+        return new Ecs($this);
+    }
+
+    public function newProcess(Command $command, array $args = []): Process
+    {
+        return new Process(array_merge(['aws'], $args, $this->standardCliArguments($command)));
+    }
+
+    public function standardCliArguments(Command $command): array
+    {
+        $awsRegion = $this->helpers->console()->handleOverridesAndFallbacks($command->option('aws-region'), NetsellsFile::DOCKER_AWS_REGION, Aws::DEFAULT_REGION);
+        $awsProfile = $this->helpers->console()->handleOverridesAndFallbacks($command->option('aws-profile'), null, Aws::DEFAULT_PROFILE);
+
+        return [
+            "--region={$awsRegion}",
+            "--profile={$awsProfile}",
+        ];
     }
 
     public static function commonConsoleOptions(): array
@@ -27,54 +49,6 @@ class Aws
             new InputOption('aws-account-id', null, InputOption::VALUE_OPTIONAL, 'Override the default AWS account ID'),
             new InputOption('aws-profile', null, InputOption::VALUE_OPTIONAL, 'Override the AWS profile to use'),
         ];
-    }
-
-    public function authenticateDocker(Command $command): bool
-    {
-        $awsRegion = $this->helpers->console()->handleOverridesAndFallbacks($command->option('aws-region'), NetsellsFile::DOCKER_AWS_REGION, self::DEFAULT_REGION);
-        $awsAccountId = $this->helpers->console()->handleOverridesAndFallbacks($command->option('aws-account-id'), NetsellsFile::DOCKER_AWS_ACCOUNT_ID, self::DEFAULT_ACCOUNT_ID);
-        $awsProfile = $this->helpers->console()->handleOverridesAndFallbacks($command->option('aws-profile'), null, self::DEFAULT_PROFILE);
-
-        $process = new Process([
-            'aws', 'ecr', 'get-login-password',
-            "--region={$awsRegion}",
-            "--profile={$awsProfile}",
-        ]);
-
-        $process->start();
-        $process->wait();
-
-        if ($process->getExitCode() !== 0) {
-            foreach ($process as $data) {
-                echo $data;
-            }
-
-            $command->error("Unable to get docker password from AWS.");
-            return false;
-        }
-
-        $password = $process->getOutput();
-
-        $process = new Process([
-            'docker', 'login',
-            "--username=AWS",
-            "--password={$password}",
-            "{$awsAccountId}.dkr.ecr.{$awsRegion}.amazonaws.com"
-        ]);
-
-        $process->start();
-        $process->wait();
-
-        if ($process->getExitCode() !== 0) {
-            foreach ($process as $data) {
-                echo $data;
-            }
-
-            $command->error("Unable to login to docker.");
-            return false;
-        }
-
-        return true;
     }
 
 }

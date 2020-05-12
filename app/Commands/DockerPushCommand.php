@@ -67,7 +67,7 @@ class DockerPushCommand extends Command
             []
         );
 
-        $loginSuccessful = $this->helpers->aws()->authenticateDocker($this);
+        $loginSuccessful = $this->helpers->aws()->ecs()->authenticateDocker($this);
 
         if (!$loginSuccessful) {
             return 1;
