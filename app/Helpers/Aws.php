@@ -45,12 +45,11 @@ class Aws
         $process->wait();
 
         if ($process->getExitCode() !== 0) {
-
             foreach ($process as $data) {
                 echo $data;
             }
 
-            $command->error("Unable to get docker password from AWS");
+            $command->error("Unable to get docker password from AWS.");
             return false;
         }
 
@@ -60,13 +59,19 @@ class Aws
             'docker', 'login',
             "--username=AWS",
             "--password={$password}",
-            "{$awsAccountId}.dkr.ecr.eu-west-2.amazonaws.com"
+            "{$awsAccountId}.dkr.ecr.{$awsRegion}.amazonaws.com"
         ]);
 
         $process->start();
+        $process->wait();
 
-        foreach ($process as $data) {
-            echo $data;
+        if ($process->getExitCode() !== 0) {
+            foreach ($process as $data) {
+                echo $data;
+            }
+
+            $command->error("Unable to login to docker.");
+            return false;
         }
 
         return true;
