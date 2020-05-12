@@ -1,22 +1,18 @@
 {
-    "name": "laravel-zero/laravel-zero",
-    "description": "The Laravel Zero Framework.",
-    "keywords": ["framework", "laravel", "laravel zero", "console", "cli"],
-    "homepage": "https://laravel-zero.com",
+    "name": "netsells/cli",
+    "description": "The Netsells CLI",
+    "homepage": "https://github.com/netsells/cli",
     "type": "project",
     "license": "MIT",
-    "support": {
-        "issues": "https://github.com/laravel-zero/laravel-zero/issues",
-        "source": "https://github.com/laravel-zero/laravel-zero"
-    },
     "authors": [
         {
-            "name": "Nuno Maduro",
-            "email": "enunomaduro@gmail.com"
+            "name": "Sam Jordan",
+            "email": "sam@netsells.co.uk"
         }
     ],
     "require": {
         "php": "^7.2.5",
+        "intonate/tinker-zero": "^1.1",
         "laminas/laminas-text": "^2.7",
         "laravel-zero/framework": "^7.0",
         "padraic/phar-updater": "^1.0.6",
