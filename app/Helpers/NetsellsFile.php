@@ -9,6 +9,8 @@ use Symfony\Component\Yaml\Exception\ParseException;
 class NetsellsFile
 {
     public const DOCKER_SERVICES = 'docker.services';
+    public const DOCKER_AWS_REGION = 'docker.aws.region';
+    public const DOCKER_AWS_ACCOUNT_ID = 'docker.aws.account-id';
 
     protected $fileName = '.netsells.yml';
     protected $fileData = null;

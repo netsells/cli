@@ -2,9 +2,9 @@
 
 namespace App\Commands;
 
-use App\Helpers\Git;
-use App\Helpers\Checks;
+use App\Helpers\Helpers;
 use App\Helpers\NetsellsFile;
+use Symfony\Component\Process\Process;
 use LaravelZero\Framework\Commands\Command;
 
 class DockerBuildCommand extends Command
@@ -26,22 +26,13 @@ class DockerBuildCommand extends Command
      */
     protected $description = 'Builds docker-compose ready for prod.';
 
-    /** @var Git $git */
-    protected $git;
+    /** @var Helpers $helpers */
+    protected $helpers;
 
-    /** @var Checks $checks */
-    protected $checks;
-
-    /** @var NetsellsFile $netsellsFile */
-    protected $netsellsFile;
-
-    public function __construct(Git $git, Checks $checks, NetsellsFile $netsellsFile)
+    public function __construct(Helpers $helpers)
     {
         parent::__construct();
-
-        $this->git = $git;
-        $this->checks = $checks;
-        $this->netsellsFile = $netsellsFile;
+        $this->helpers = $helpers;
     }
 
     /**
@@ -53,18 +44,22 @@ class DockerBuildCommand extends Command
     {
         $requiredBinaries = ['docker', 'docker-compose'];
 
-        if ($this->checks->checkAndReportMissingBinaries($this, $requiredBinaries)) {
+        if ($this->helpers->checks()->checkAndReportMissingBinaries($this, $requiredBinaries)) {
             return 1;
         }
 
         $requiredFiles = ['docker-compose.yml', 'docker-compose-prod.yml'];
 
-        if ($this->checks->checkAndReportMissingFiles($this, $requiredFiles)) {
+        if ($this->helpers->checks()->checkAndReportMissingFiles($this, $requiredFiles)) {
             return 1;
         }
 
         $tag = trim($this->option('tag') ?: $this->git->currentSha());
-        $services = $this->option('service') ?: $this->netsellsFile->get(NetsellsFile::DOCKER_SERVICES, []);
+        $services = $this->helpers->console()->handleOverridesAndFallbacks(
+            $this->option('service'),
+            NetsellsFile::DOCKER_SERVICES,
+            []
+        );
 
         if (count($services) == 0) {
             // Generic full file build as we have no services
@@ -80,14 +75,21 @@ class DockerBuildCommand extends Command
         }
     }
 
-    protected function callBuild(string $tag, string $service = null): string
+    protected function callBuild(string $tag, string $service = null): void
     {
-        putenv("TAG={$tag}");
-        return shell_exec("
-            docker-compose \
-                -f docker-compose.yml \
-                -f docker-compose-prod.yml \
-                build --no-cache {$service}
-        ");
+        $process = new Process([
+            'docker-compose',
+            '-f', 'docker-compose.yml',
+            '-f', 'docker-compose-prod.yml',
+            'build', '--no-cache', $service
+        ], null, [
+            'TAG' => $tag,
+        ]);
+
+        $process->start();
+
+        foreach ($process as $data) {
+            echo $data;
+        }
     }
 }

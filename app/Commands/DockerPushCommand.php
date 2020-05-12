@@ -2,10 +2,11 @@
 
 namespace App\Commands;
 
-use App\Helpers\Git;
-use App\Helpers\Checks;
+use App\Helpers\Helpers;
 use App\Helpers\NetsellsFile;
+use Symfony\Component\Process\Process;
 use LaravelZero\Framework\Commands\Command;
+use Symfony\Component\Console\Input\InputOption;
 
 class DockerPushCommand extends Command
 {
@@ -14,34 +15,30 @@ class DockerPushCommand extends Command
      *
      * @var string
      */
-    protected $signature = 'docker:push
-        {--tag= : The tag that should be built with the images. Defaults to the current commit SHA}
-        {--service=* : The service that should be pushed. Not defining this will push all services}
-    ';
+    protected $signature = 'docker:push';
 
     /**
      * The description of the command.
      *
      * @var string
      */
-    protected $description = 'Pushes docker-compose created images to the NS AWS account.';
+    protected $description = 'Pushes docker-compose created images to ECR.';
 
-    /** @var Git $git */
-    protected $git;
+    /** @var Helpers $helpers */
+    protected $helpers;
 
-    /** @var Checks $checks */
-    protected $checks;
-
-    /** @var NetsellsFile $netsellsFile */
-    protected $netsellsFile;
-
-    public function __construct(Git $git, Checks $checks, NetsellsFile $netsellsFile)
+    public function __construct(Helpers $helpers)
     {
+        $this->helpers = $helpers;
         parent::__construct();
+    }
 
-        $this->git = $git;
-        $this->checks = $checks;
-        $this->netsellsFile = $netsellsFile;
+    public function configure()
+    {
+        $this->setDefinition(array_merge([
+            new InputOption('tag', null, InputOption::VALUE_OPTIONAL, 'The tag that should be built with the images. Defaults to the current commit SHA'),
+            new InputOption('service', null, InputOption::VALUE_OPTIONAL | InputOption::VALUE_IS_ARRAY, 'The service that should be pushed. Not defining this will push all services'),
+        ], $this->helpers->aws()->commonConsoleOptions()));
     }
 
     /**
@@ -53,18 +50,28 @@ class DockerPushCommand extends Command
     {
         $requiredBinaries = ['docker', 'docker-compose', 'aws'];
 
-        if ($this->checks->checkAndReportMissingBinaries($this, $requiredBinaries)) {
+        if ($this->helpers->checks()->checkAndReportMissingBinaries($this, $requiredBinaries)) {
             return 1;
         }
 
         $requiredFiles = ['docker-compose.yml', 'docker-compose-prod.yml'];
 
-        if ($this->checks->checkAndReportMissingFiles($this, $requiredFiles)) {
+        if ($this->helpers->checks()->checkAndReportMissingFiles($this, $requiredFiles)) {
             return 1;
         }
 
-        $tag = trim($this->option('tag') ?: $this->git->currentSha());
-        $services = $this->option('service') ?: $this->netsellsFile->get(NetsellsFile::DOCKER_SERVICES, []);
+        $tag = trim($this->option('tag') ?: $this->helpers->git()->currentSha());
+        $services = $this->helpers->console()->handleOverridesAndFallbacks(
+            $this->option('service'),
+            NetsellsFile::DOCKER_SERVICES,
+            []
+        );
+
+        $loginSuccessful = $this->helpers->aws()->authenticateDocker($this);
+
+        if (!$loginSuccessful) {
+            return 1;
+        }
 
         if (count($services) == 0) {
             // Generic full file build as we have no services
@@ -80,14 +87,21 @@ class DockerPushCommand extends Command
         }
     }
 
-    protected function callPush(string $tag, string $service = null): string
+    protected function callPush(string $tag, string $service = null): void
     {
-        putenv("TAG={$tag}");
-        return shell_exec("
-            docker-compose \
-                -f docker-compose.yml \
-                -f docker-compose-prod.yml \
-                push {$service}
-        ");
+        $process = new Process([
+            'docker-compose',
+            '-f', 'docker-compose.yml',
+            '-f', 'docker-compose-prod.yml',
+            'push', $service
+        ], null, [
+            'TAG' => $tag,
+        ]);
+
+        $process->start();
+
+        foreach ($process as $data) {
+            echo $data;
+        }
     }
 }
