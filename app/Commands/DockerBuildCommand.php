@@ -54,7 +54,7 @@ class DockerBuildCommand extends Command
             return 1;
         }
 
-        $tag = trim($this->option('tag') ?: $this->git->currentSha());
+        $tag = trim($this->option('tag') ?: $this->helpers->git()->currentSha());
         $services = $this->helpers->console()->handleOverridesAndFallbacks(
             $this->option('service'),
             NetsellsFile::DOCKER_SERVICES,
