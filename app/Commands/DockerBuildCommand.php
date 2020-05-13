@@ -48,7 +48,7 @@ class DockerBuildCommand extends Command
             return 1;
         }
 
-        $requiredFiles = ['docker-compose.yml', 'docker-compose-prod.yml'];
+        $requiredFiles = ['docker-compose.yml', 'docker-compose.prod.yml'];
 
         if ($this->helpers->checks()->checkAndReportMissingFiles($this, $requiredFiles)) {
             return 1;
@@ -82,7 +82,7 @@ class DockerBuildCommand extends Command
         $process = new Process([
             'docker-compose',
             '-f', 'docker-compose.yml',
-            '-f', 'docker-compose-prod.yml',
+            '-f', 'docker-compose.prod.yml',
             'build', '--no-cache', $service
         ], null, [
             'TAG' => $tag,
