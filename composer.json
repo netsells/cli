@@ -12,7 +12,6 @@
     ],
     "require": {
         "php": "^7.2.5",
-        "intonate/tinker-zero": "^1.1",
         "laminas/laminas-text": "^2.7",
         "laravel-zero/framework": "^7.0",
         "padraic/phar-updater": "^1.0.6",
