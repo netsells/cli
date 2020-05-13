@@ -11,7 +11,6 @@ class Aws
 {
     public const DEFAULT_REGION = 'eu-west-2';
     public const DEFAULT_ACCOUNT_ID = '422860057079';
-    public const DEFAULT_PROFILE = 'default';
 
     /** @var Helpers $helpers */
     public $helpers;
@@ -34,12 +33,16 @@ class Aws
     public function standardCliArguments(Command $command): array
     {
         $awsRegion = $this->helpers->console()->handleOverridesAndFallbacks($command->option('aws-region'), NetsellsFile::DOCKER_AWS_REGION, Aws::DEFAULT_REGION);
-        $awsProfile = $this->helpers->console()->handleOverridesAndFallbacks($command->option('aws-profile'), null, Aws::DEFAULT_PROFILE);
 
-        return [
+        $return = [
             "--region={$awsRegion}",
-            "--profile={$awsProfile}",
         ];
+
+        if ($awsProfile = $command->option('aws-profile')) {
+            $return[] = "--profile={$awsProfile}";
+        }
+
+        return $return;
     }
 
     public static function commonConsoleOptions(): array
