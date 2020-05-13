@@ -86,7 +86,7 @@ class DockerBuildCommand extends Command
             'build', '--no-cache', $service
         ], null, [
             'TAG' => $tag,
-        ]);
+        ], null, 1200); // 20min timeout
 
         $process->start();
 

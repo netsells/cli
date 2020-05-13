@@ -98,7 +98,7 @@ class DockerPushCommand extends Command
             'push', $service
         ], null, [
             'TAG' => $tag,
-        ]);
+        ], null, 1200); // 20min timeout
 
         $process->start();
 
