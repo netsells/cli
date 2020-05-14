@@ -83,13 +83,15 @@ class DockerPushCommand extends Command
         $this->line("Pushing docker images for services with tag {$tag}: " . implode(',', $services));
 
         foreach ($services as $service) {
-            $this->callPush($tag, $service);
+            if (!$this->callPush($tag, $service)) {
+                return 1;
+            }
         }
 
         $this->info("Docker images pushed.");
     }
 
-    protected function callPush(string $tag, string $service = null): void
+    protected function callPush(string $tag, string $service = null): bool
     {
         $process = new Process([
             'docker-compose',
@@ -101,9 +103,18 @@ class DockerPushCommand extends Command
         ], null, 1200); // 20min timeout
 
         $process->start();
+        $process->wait();
 
-        foreach ($process as $data) {
-            echo $data;
+        if ($process->getExitCode() !== 0) {
+            foreach ($process as $data) {
+                echo $data;
+            }
+
+            $this->error("Unable to push all items to AWS, check the above output for reasons why.");
+            return false;
         }
+
+        echo $process->getOutput();
+        return true;
     }
 }
