@@ -15,8 +15,6 @@ jobs:
         run: echo ::set-output name=VERSION::v1.0.4
       - name: Checkout code
         uses: actions/checkout@v2
-      - name: Setup tmate session
-        uses: mxschmitt/action-tmate@v2
 
       - name: "Install PHP"
         uses: "shivammathur/setup-php@v2"
@@ -28,6 +26,10 @@ jobs:
 
       - name: "Install dependencies from composer.lock using composer binary provided by system"
         run: "composer install ${{ env.COMPOSER_FLAGS }}"
+
+
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v2
 
       - name: Build Release
         run: php netsells app:build --build-version=${{ steps.get_version.outputs.VERSION }}
