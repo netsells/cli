@@ -6,6 +6,7 @@ use App\Helpers\Helpers;
 use App\Helpers\NetsellsFile;
 use Symfony\Component\Process\Process;
 use LaravelZero\Framework\Commands\Command;
+use Symfony\Component\Console\Input\InputOption;
 
 class DockerBuildCommand extends Command
 {
@@ -14,10 +15,7 @@ class DockerBuildCommand extends Command
      *
      * @var string
      */
-    protected $signature = 'docker:build
-        {--tag= : The tag that should be built with the images. Defaults to the current commit SHA}
-        {--service=* : The service that should be built. Not defining this will build all services (which will probably take longer than it could)}
-    ';
+    protected $signature = 'docker:build';
 
     /**
      * The description of the command.
@@ -31,8 +29,16 @@ class DockerBuildCommand extends Command
 
     public function __construct(Helpers $helpers)
     {
-        parent::__construct();
         $this->helpers = $helpers;
+        parent::__construct();
+    }
+
+    public function configure()
+    {
+        $this->setDefinition(array_merge([
+            new InputOption('tag', null, InputOption::VALUE_OPTIONAL, 'The tag that should be built with the images. Defaults to the current commit SHA'),
+            new InputOption('service', null, InputOption::VALUE_OPTIONAL | InputOption::VALUE_IS_ARRAY, 'The service that should be built. Not defining this will push all services'),
+        ], $this->helpers->aws()->commonConsoleOptions()));
     }
 
     /**
@@ -60,6 +66,12 @@ class DockerBuildCommand extends Command
             NetsellsFile::DOCKER_SERVICES,
             []
         );
+
+        $loginSuccessful = $this->helpers->aws()->ecs()->authenticateDocker($this);
+
+        if (!$loginSuccessful) {
+            return 1;
+        }
 
         if (count($services) == 0) {
             // Generic full file build as we have no services
