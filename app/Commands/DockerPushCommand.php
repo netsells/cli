@@ -103,18 +103,18 @@ class DockerPushCommand extends Command
         ], null, 1200); // 20min timeout
 
         $process->start();
+
+        foreach ($process as $data) {
+            echo $data;
+        }
+
         $process->wait();
 
         if ($process->getExitCode() !== 0) {
-            foreach ($process as $data) {
-                echo $data;
-            }
-
             $this->error("Unable to push all items to AWS, check the above output for reasons why.");
             return false;
         }
 
-        echo $process->getOutput();
         return true;
     }
 }
