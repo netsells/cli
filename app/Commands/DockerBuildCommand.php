@@ -111,7 +111,7 @@ class DockerBuildCommand extends Command
         $process->wait();
 
         if ($process->getExitCode() !== 0) {
-            $this->error("Unable to push all items to AWS, check the above output for reasons why.");
+            $this->error("Unable to build all images, check the above output for reasons why.");
             return false;
         }
 
