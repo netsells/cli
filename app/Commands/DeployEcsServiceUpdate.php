@@ -67,6 +67,11 @@ class DeployEcsServiceUpdate extends Command
         }
 
         $taskDefinition = $this->helpers->aws()->ecs()->getTaskDefinition($this, $this->taskDefinitionName);
+
+        if (!$taskDefinition) {
+            return 1;
+        }
+
         $controllingTag = $this->determineControllingTag($taskDefinition);
 
         $this->line("Updating all images from {$controllingTag} to {$tag} in {$this->taskDefinitionName}");
@@ -75,6 +80,11 @@ class DeployEcsServiceUpdate extends Command
         $taskDefinitionJson = $this->prepareTaskDefinitionForRegister($taskDefinition);
 
         $newTaskDefinition = $this->helpers->aws()->ecs()->registerTaskDefinition($this, $taskDefinitionJson);
+
+        if (!$newTaskDefinition) {
+            return 1;
+        }
+
         $newTaskDefinitionString = $this->prepareNewTaskDefinitionRevisionString($newTaskDefinition);
         $this->line("Task definition updated to revision {$newTaskDefinitionString}");
 

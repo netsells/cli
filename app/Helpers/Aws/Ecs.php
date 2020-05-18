@@ -103,7 +103,7 @@ class Ecs
 
         return json_decode($process->getOutput(), true);
     }
-    
+
     public function updateService(Command $command, string $clusterName, string $serviceName, string $taskDefinition): ?array
     {
         $process = $this->aws->newProcess($command, [
@@ -121,7 +121,7 @@ class Ecs
                 echo $data;
             }
 
-            $command->error("Unable to register task definition in AWS.");
+            $command->error("Unable to update service in AWS.");
             return null;
         }
 
