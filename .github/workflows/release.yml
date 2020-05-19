@@ -17,8 +17,16 @@ jobs:
       - name: Get the version
         id: get_version
         run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
+
       - name: Checkout code
         uses: actions/checkout@v2
+
+      - name: Build changelog
+        id: release_notes
+        run: |
+          RELEASE_NOTES=$(git --no-pager log --pretty=tformat:"* %h - %s" $(git describe --tags --abbrev=0 @^)..@)
+          RELEASE_NOTES="${RELEASE_NOTES//$'\n'/ }"
+          echo "::set-output name=contents::$RELEASE_NOTES"
 
       - name: "Install PHP"
         uses: "shivammathur/setup-php@v2"
@@ -43,7 +51,8 @@ jobs:
           tag_name: ${{ github.ref }}
           release_name: ${{ github.ref }}
           draft: true
-          body: TODO
+          body:  |
+            ${{ steps.release_notes.outputs.contents }}
 
       - name: Upload Release Asset
         id: upload-release-asset
