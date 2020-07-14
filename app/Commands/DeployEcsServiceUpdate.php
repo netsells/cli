@@ -44,6 +44,8 @@ class DeployEcsServiceUpdate extends Command
             new InputOption('ecs-service', null, InputOption::VALUE_OPTIONAL, 'The ECS service name'),
             new InputOption('ecs-cluster', null, InputOption::VALUE_OPTIONAL, 'The ECS cluster name'),
             new InputOption('ecs-task-definition', null, InputOption::VALUE_OPTIONAL, 'The ECS task definition name'),
+            new InputOption('migrate-container', null, InputOption::VALUE_OPTIONAL, 'The container to run the migration on'),
+            new InputOption('migrate-command', null, InputOption::VALUE_OPTIONAL, 'The migration command to run'),
         ], $this->helpers->aws()->commonConsoleOptions()));
     }
 
@@ -91,7 +93,40 @@ class DeployEcsServiceUpdate extends Command
         $this->helpers->aws()->ecs()->updateService($this, $this->clusterName, $this->serviceName, $newTaskDefinitionString);
         $this->line("Service updated to task definition {$newTaskDefinitionString}");
 
+        $migrateCommand = $this->helpers->console()->handleOverridesAndFallbacks($this->option('migrate-command'), NetsellsFile::DOCKER_ECS_MIGRATE_COMMAND);
+        $migrateContainer = $this->helpers->console()->handleOverridesAndFallbacks($this->option('migrate-container'), NetsellsFile::DOCKER_ECS_MIGRATE_CONTAINER);
+
+        if ($migrateCommand && $migrateContainer) {
+            $this->line("Migrate command detected, running as a one-off task.");
+
+            $this->runMigrateCommand($migrateCommand, $newTaskDefinitionString, $migrateContainer);
+        }
+
         $this->info("Successfully deployed to ECS, deployment can be seen at " . $this->generateDeploymentUrl());
+    }
+
+    protected function runMigrateCommand($migrateCommand, string $newTaskDefinitionString, string $container): void
+    {
+        $consts = [
+            'LARAVEL_DATABASE_MIGRATIONS' => ['php', 'artisan', 'migrate', '--force'],
+        ];
+
+        if (is_string($migrateCommand)) {
+            foreach ($consts as $const => $value) {
+                if ($migrateCommand === $const) {
+                    $migrateCommand = $value;
+                    continue;
+                }
+            }
+        }
+
+        $this->helpers->aws()->ecs()->runTaskWithCommand(
+            $this,
+            $this->clusterName,
+            $newTaskDefinitionString,
+            $migrateCommand,
+            $container
+        );
     }
 
     protected function prepareNewTaskDefinitionRevisionString($newTaskDefinition): string
