@@ -24,6 +24,11 @@ class Helpers
         return new Aws($this);
     }
 
+    public function process(): Process
+    {
+        return new Process($this);
+    }
+
     public function netsellsFile(): NetsellsFile
     {
         return new NetsellsFile();

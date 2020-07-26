@@ -2,10 +2,12 @@
 
 namespace App\Helpers;
 
+use App\Helpers\Aws\Ec2;
 use App\Helpers\Aws\Ecs;
+use App\Helpers\Aws\Ssm;
+use App\Helpers\Process;
 use LaravelZero\Framework\Commands\Command;
 use Symfony\Component\Console\Input\InputOption;
-use Symfony\Component\Process\Process;
 
 class Aws
 {
@@ -25,9 +27,19 @@ class Aws
         return new Ecs($this);
     }
 
+    public function ssm(): Ssm
+    {
+        return new Ssm($this);
+    }
+
+    public function ec2(): Ec2
+    {
+        return new Ec2($this);
+    }
+
     public function newProcess(Command $command, array $args = []): Process
     {
-        return new Process(array_merge(['aws'], $args, $this->standardCliArguments($command)));
+        return $this->helpers->process()->withCommand(array_merge(['aws'], $args, $this->standardCliArguments($command)));
     }
 
     public function standardCliArguments(Command $command): array
