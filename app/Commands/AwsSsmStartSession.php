@@ -74,10 +74,23 @@ class AwsSsmStartSession extends Command
 
     private function generateTempSshKey()
     {
-        $sshDir = $_SERVER['HOME'] . '/.ssh/';
+        $requiredBinaries = ['aws', 'ssh', 'ssh-keygen'];
 
-        unlink($sshDir . $this->tempKeyName);
-        unlink($sshDir . $this->tempKeyName . '.pub');
+        if ($this->helpers->checks()->checkAndReportMissingBinaries($this, $requiredBinaries)) {
+            return 1;
+        }
+
+        $sshDir = $_SERVER['HOME'] . '/.ssh/';
+        $keyName = $sshDir . $this->tempKeyName;
+        $pubKeyName = "{$keyName}.pub";
+
+        if (file_exists($keyName)) {
+            unlink($keyName);
+        }
+
+        if (file_exists($pubKeyName)) {
+            unlink($pubKeyName);
+        }
 
         try {
             $this->helpers->process()
@@ -85,7 +98,7 @@ class AwsSsmStartSession extends Command
                     'ssh-keygen',
                     '-t', 'ed25519',
                     '-N', "",
-                    '-f', $sshDir . $this->tempKeyName,
+                    '-f', $keyName,
                     '-C', "netsells-cli-ssm-ssh-session"
                 ])
                 ->echoLineByLineOutput(false)
@@ -95,7 +108,7 @@ class AwsSsmStartSession extends Command
             return false;
         }
 
-        return trim(file_get_contents($sshDir . $this->tempKeyName . '.pub'));
+        return trim(file_get_contents($pubKeyName));
     }
 
     private function generateRemoteCommand($username, $key)
