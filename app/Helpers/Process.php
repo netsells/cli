@@ -19,12 +19,12 @@ class Process
     {
         $this->arguments = $arguments;
 
-        $this->process = new SymfonyProcess($this->arguments, null, $this->environmentVars, null, $this->timeout);
         return $this;
     }
 
     public function run()
     {
+        $this->process = new SymfonyProcess($this->arguments, null, $this->environmentVars, null, $this->timeout);
         $this->process->start();
 
         if ($this->echoLineByLineOutput) {
@@ -36,7 +36,8 @@ class Process
         $this->process->wait();
 
         if ($this->process->getExitCode() !== 0) {
-            if ($this->echoOnFailure) {
+            // If we're already echo'ing line by line, there's no point echoing it again
+            if ($this->echoOnFailure && !$this->echoLineByLineOutput) {
                 foreach ($this->process as $data) {
                     echo $data;
                 }
