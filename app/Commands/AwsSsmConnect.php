@@ -51,6 +51,12 @@ class AwsSsmConnect extends Command
      */
     public function handle()
     {
+        $requiredBinaries = ['aws', 'ssh'];
+
+        if ($this->helpers->checks()->checkAndReportMissingBinaries($this, $requiredBinaries)) {
+            return 1;
+        }
+
         if ($this->option('executable') && (!$this->option('instance-id') || !$this->option('username'))) {
             $this->line("echo 'You cannot use executable without specifying all required options'");
             return;
@@ -82,7 +88,7 @@ class AwsSsmConnect extends Command
             '-o', '"IdentitiesOnly yes"',
             '-o', '"GSSAPIAuthentication no"',
             '-o', '"PasswordAuthentication no"',
-            '-o', "\"ProxyCommand bash -c \\\"$(php /Users/sam/code/desktop/netsells-cli/netsells aws:ssm:start-session {$username} {$instanceId} {$awsOptions})\\\"\"",
+            '-o', "\"ProxyCommand bash -c \\\"$(netsells aws:ssm:start-session {$username} {$instanceId} {$awsOptions})\\\"\"",
         ];
 
         if ($this->option('tunnel')) {
