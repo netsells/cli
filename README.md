@@ -30,6 +30,10 @@ netsells
 
   USAGE: netsells <command> [options] [arguments]
 
+  aws:ec2:list             List the instances available
+  aws:ssm:connect          Connect to an server via SSH
+  aws:ssm:start-session    Configures your machine for SSM SSH connections
+
   docker:aws:deploy-update Updates task definition and service
   docker:aws:push          Pushes docker-compose created images to ECR.
   docker:build             Builds docker-compose ready for prod.
