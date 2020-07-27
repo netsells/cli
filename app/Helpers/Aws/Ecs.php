@@ -43,7 +43,8 @@ class Ecs
                 "--password={$password}",
                 "{$awsAccountId}.dkr.ecr.{$awsRegion}.amazonaws.com"
             ])
-            ->echoLineByLineOutput(false);
+            ->echoLineByLineOutput(false)
+            ->run();
         } catch (ProcessFailed $e) {
             $command->error("Unable to login to docker.");
             return false;
