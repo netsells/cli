@@ -27,7 +27,6 @@ class Ecs
             $processOutput = $this->aws->newProcess($command, [
                 'ecr', 'get-login-password',
             ])
-            ->echoLineByLineOutput(false)
             ->run();
         } catch (ProcessFailed $e) {
             $command->error("Unable to get docker password from AWS.");
@@ -43,7 +42,6 @@ class Ecs
                 "--password={$password}",
                 "{$awsAccountId}.dkr.ecr.{$awsRegion}.amazonaws.com"
             ])
-            ->echoLineByLineOutput(false)
             ->run();
         } catch (ProcessFailed $e) {
             $command->error("Unable to login to docker.");
@@ -59,7 +57,6 @@ class Ecs
             $processOutput = $this->aws->newProcess($command, [
                 'ecs', 'describe-task-definition', "--task-definition={$name}",
             ])
-            ->echoLineByLineOutput(false)
             ->run();
         } catch (ProcessFailed $e) {
             $command->error("Unable to get task definition [{$name}] from AWS.");
@@ -75,7 +72,6 @@ class Ecs
             $processOutput = $this->aws->newProcess($command, [
                 'ecs', 'register-task-definition', "--cli-input-json", $taskDefinitionJson,
             ])
-            ->echoLineByLineOutput(false)
             ->run();
         } catch (ProcessFailed $e) {
             $command->error("Unable to register task definition in AWS.");
@@ -94,7 +90,6 @@ class Ecs
                 "--service={$serviceName}",
                 "--task-definition={$taskDefinition}",
             ])
-            ->echoLineByLineOutput(false)
             ->run();
         } catch (ProcessFailed $e) {
             $command->error("Unable to update service in AWS.");
@@ -123,7 +118,6 @@ class Ecs
                 "--overrides={$overrides}",
                 "--task-definition={$taskDefinition}",
             ])
-            ->echoLineByLineOutput(false)
             ->run();
         } catch (ProcessFailed $e) {
             $command->error("Unable to start migration task in AWS.");

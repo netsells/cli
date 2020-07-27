@@ -27,7 +27,6 @@ class Ssm
                 '--parameters', "commands=\"{$remoteCommand}\"",
                 '--comment', '"Temporary SSM SSH Access via Netsells CLI"'
             ])
-            ->echoLineByLineOutput(false)
             ->run();
 
             return true;
