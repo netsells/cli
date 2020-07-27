@@ -2,11 +2,9 @@
 
 namespace App\Commands;
 
-use App\Exceptions\ProcessFailed;
 use App\Helpers\Helpers;
-use Symfony\Component\Process\Process;
+use App\Exceptions\ProcessFailed;
 use LaravelZero\Framework\Commands\Command;
-use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Input\InputArgument;
 
 class AwsSsmStartSession extends Command
@@ -101,7 +99,6 @@ class AwsSsmStartSession extends Command
                     '-f', $keyName,
                     '-C', "netsells-cli-ssm-ssh-session"
                 ])
-                ->echoLineByLineOutput(false)
                 ->run();
         } catch (ProcessFailed $e) {
             $this->error("Unable to generate temp ssh key.");

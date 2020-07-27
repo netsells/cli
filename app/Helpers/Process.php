@@ -8,7 +8,7 @@ use Symfony\Component\Process\Process as SymfonyProcess;
 class Process
 {
     protected $echoOnFailure = true;
-    protected $echoLineByLineOutput = true;
+    protected $echoLineByLineOutput = false;
 
     protected $timeout = 60;
     protected $environmentVars = [];

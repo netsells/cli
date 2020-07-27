@@ -26,7 +26,7 @@ class Helpers
 
     public function process(): Process
     {
-        return new Process($this);
+        return app(Process::class);
     }
 
     public function netsellsFile(): NetsellsFile

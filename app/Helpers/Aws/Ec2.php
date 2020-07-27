@@ -32,7 +32,6 @@ class Ec2
 
         try {
             $processOutput = $this->aws->newProcess($command, $commandOptions)
-            ->echoLineByLineOutput(false)
             ->run();
         } catch (ProcessFailed $e) {
             $command->error("Unable to list ec2 instances");
