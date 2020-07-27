@@ -36,6 +36,7 @@ class Ec2
             ->run();
         } catch (ProcessFailed $e) {
             $command->error("Unable to list ec2 instances");
+            return null;
         }
 
         return collect(json_decode($processOutput, true));

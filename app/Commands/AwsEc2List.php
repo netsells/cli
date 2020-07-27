@@ -42,17 +42,24 @@ class AwsEc2List extends Command
      */
     public function handle()
     {
+        $requiredBinaries = ['aws'];
+
+        if ($this->helpers->checks()->checkAndReportMissingBinaries($this, $requiredBinaries)) {
+            return 1;
+        }
+
         $columns = ['InstanceId', 'Name', 'PrivateIpAddress', 'InstanceType'];
 
         $instances = $this->helpers->aws()->ec2()->listInstances(
             $this,
             "Reservations[*].Instances[*].{InstanceId:InstanceId,Name:Tags[?Key=='Name']|[0].Value,PrivateIpAddress:PrivateIpAddress,InstanceType:InstanceType}"
-        )->flatten(1);
+        );
 
         if (is_null($instances)) {
             $this->error("Could not get instances.");
+            return 1;
         }
 
-        $this->table($columns, $instances);
+        $this->table($columns, $instances->flatten(1));
     }
 }
