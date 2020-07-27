@@ -7,12 +7,12 @@ use Symfony\Component\Process\Process as SymfonyProcess;
 
 class Process
 {
-    protected bool $echoOnFailure = true;
-    protected bool $echoLineByLineOutput = true;
+    protected $echoOnFailure = true;
+    protected $echoLineByLineOutput = true;
 
-    protected int $timeout = 60;
-    protected array $environmentVars = [];
-    protected array $arguments = [];
+    protected $timeout = 60;
+    protected $environmentVars = [];
+    protected $arguments = [];
     protected $process;
 
     public function withCommand(array $arguments)
