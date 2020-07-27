@@ -4,6 +4,7 @@ namespace App\Commands;
 
 use App\Helpers\Helpers;
 use App\Helpers\NetsellsFile;
+use App\Exceptions\ProcessFailed;
 use Symfony\Component\Process\Process;
 use LaravelZero\Framework\Commands\Command;
 use Symfony\Component\Console\Input\InputOption;
@@ -93,24 +94,18 @@ class DockerPushCommand extends Command
 
     protected function callPush(string $tag, string $service = null): bool
     {
-        $process = new Process([
-            'docker-compose',
-            '-f', 'docker-compose.yml',
-            '-f', 'docker-compose.prod.yml',
-            'push', $service
-        ], null, [
-            'TAG' => $tag,
-        ], null, 1200); // 20min timeout
-
-        $process->start();
-
-        foreach ($process as $data) {
-            echo $data;
-        }
-
-        $process->wait();
-
-        if ($process->getExitCode() !== 0) {
+         try {
+            $this->helpers->process()->withCommand([
+                'docker-compose',
+                '-f', 'docker-compose.yml',
+                '-f', 'docker-compose.prod.yml',
+                'push', $service
+            ])
+            ->withEnvironmentVars(['TAG' => $tag])
+            ->withTimeout(1200) // 20mins
+            ->echoLineByLineOutput(true)
+            ->run();
+        } catch (ProcessFailed $e) {
             $this->error("Unable to push all items to AWS, check the above output for reasons why.");
             return false;
         }
