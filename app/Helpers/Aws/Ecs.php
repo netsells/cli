@@ -38,8 +38,8 @@ class Ecs
         try {
             $this->aws->helpers->process()->withCommand([
                 'docker', 'login',
-                "--username=AWS",
-                "--password={$password}",
+                '--username', 'AWS',
+                '--password', $password,
                 "{$awsAccountId}.dkr.ecr.{$awsRegion}.amazonaws.com"
             ])
             ->run();
