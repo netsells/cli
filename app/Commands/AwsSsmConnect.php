@@ -2,7 +2,9 @@
 
 namespace App\Commands;
 
+use App\Exceptions\ProcessFailed;
 use App\Helpers\Helpers;
+use Symfony\Component\Process\Process;
 use LaravelZero\Framework\Commands\Command;
 use Symfony\Component\Console\Input\InputOption;
 
@@ -40,7 +42,7 @@ class AwsSsmConnect extends Command
             new InputOption('tunnel-remote-server', null, InputOption::VALUE_OPTIONAL, 'The SSH tunnel remote server'),
             new InputOption('tunnel-remote-port', null, InputOption::VALUE_OPTIONAL, 'The SSH tunnel remote port'),
             new InputOption('tunnel-local-port', null, InputOption::VALUE_OPTIONAL, 'The SSH tunnel local port'),
-            new InputOption('executable', null, InputOption::VALUE_NONE, 'Sets the output to the raw generated command'),
+            new InputOption('show-command', null, InputOption::VALUE_NONE, 'Shows the SSH command instead of running it'),
         ], $this->helpers->aws()->commonConsoleOptions()));
     }
 
@@ -55,16 +57,6 @@ class AwsSsmConnect extends Command
 
         if ($this->helpers->checks()->checkAndReportMissingBinaries($this, $requiredBinaries)) {
             return 1;
-        }
-
-        if ($this->option('executable') && (!$this->option('instance-id') || !$this->option('username'))) {
-            $this->line("echo 'You cannot use executable without specifying all required options'");
-            return;
-        }
-
-        if ($this->option('executable') && $this->option('tunnel') && (!$this->option('tunnel-remote-server') || !$this->option('tunnel-remote-port') || !$this->option('tunnel-local-port'))) {
-            $this->line("echo 'You cannot use executable without specifying all required tunnel options'");
-            return;
         }
 
         $rebuildOptions = [];
@@ -84,11 +76,12 @@ class AwsSsmConnect extends Command
         $rebuildOptions = $this->appendResolvedArgument($rebuildOptions, 'aws-region');
 
         $options = [
-            '-o', '"IdentityFile ~/.ssh/netsells-cli-ssm-ssh-tmp"',
-            '-o', '"IdentitiesOnly yes"',
-            '-o', '"GSSAPIAuthentication no"',
-            '-o', '"PasswordAuthentication no"',
-            '-o', "\"ProxyCommand bash -c \\\"$(netsells aws:ssm:start-session {$username} {$instanceId} {$awsOptions})\\\"\"",
+            '-o', 'IdentityFile ~/.ssh/netsells-cli-ssm-ssh-tmp',
+            '-o', 'IdentitiesOnly yes',
+            '-o', 'GSSAPIAuthentication no',
+            '-o', 'PasswordAuthentication no',
+            '-o', "ProxyCommand bash -c \"$(netsells aws:ssm:start-session {$username} {$instanceId} {$awsOptions})\"",
+            '-vvv',
         ];
 
         if ($this->option('tunnel')) {
@@ -96,7 +89,8 @@ class AwsSsmConnect extends Command
             $tunnelRemotePort = $this->option('tunnel-remote-port') ?: $this->askForTunnelRemotePort();
             $tunnelLocalPort = $this->option('tunnel-local-port') ?: $this->askForTunnelLocalPort();
 
-            $options[] = '-N -L';
+            $options[] = '-N';
+            $options[] = '-L';
             $options[] = sprintf('%s:%s:%s', $tunnelLocalPort, $tunnelRemoteServer, $tunnelRemotePort);
 
             $rebuildOptions = $this->appendResolvedArgument($rebuildOptions, 'tunnel-remote-server', $tunnelRemoteServer);
@@ -104,25 +98,39 @@ class AwsSsmConnect extends Command
             $rebuildOptions = $this->appendResolvedArgument($rebuildOptions, 'tunnel-local-port', $tunnelLocalPort);
         }
 
-        $command = sprintf("ssh %s %s@%s", implode(' ', $options), $username, $instanceId);
+        if ($this->option('show-command')) {
+            $command = sprintf("ssh %s %s@%s", implode(' ', $options), $username, $instanceId);
 
-        if ($this->option('executable')) {
-            $this->line($command);
-            return;
+            $this->info("Run the following command to connect:");
+            $this->info(' ');
+            $this->comment($command);
+            $this->info(' ');
+        } else {
+            $this->info("Establishing an SSH connection with {$instanceId}, this may take a few seconds...");
+            try {
+                $this->helpers->process()->withCommand(array_merge([
+                    'ssh',
+                ], $options, [
+                    sprintf("%s@%s", $username, $instanceId)
+                ]))
+                ->withTimeout(null)
+                ->withProcessModifications(function ($process) {
+                    $process->setTty(Process::isTtySupported());
+                    $process->setIdleTimeout(null);
+                })
+                ->run();
+            } catch (ProcessFailed $e) {
+                $this->info(' ');
+                $this->error("SSH command exited with an exit code of " . $e->getCode());
+            }
         }
 
-        $this->info("Run the following command to connect:");
         $this->info(' ');
-        $this->comment($command);
         $this->info(' ');
-
         $this->info("You can run this command again without having to go through options using this:");
         $this->info(' ');
         $this->comment("netsells aws:ssm:connect " . implode(' ', $rebuildOptions));
         $this->info(' ');
-
-        // Can't do this yet
-        // $this->info("You can also return only the ssm connect string by passing in --executable");
     }
 
     protected function appendResolvedArgument($array, $key, $localValue = null): array

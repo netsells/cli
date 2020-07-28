@@ -3,6 +3,7 @@
 namespace App\Helpers;
 
 use App\Exceptions\ProcessFailed;
+use Closure;
 use Symfony\Component\Process\Process as SymfonyProcess;
 
 class Process
@@ -14,6 +15,7 @@ class Process
     protected $environmentVars = [];
     protected $arguments = [];
     protected $process;
+    protected $processModifications;
 
     public function withCommand(array $arguments)
     {
@@ -25,6 +27,12 @@ class Process
     public function run()
     {
         $this->process = new SymfonyProcess($this->arguments, null, $this->environmentVars, null, $this->timeout);
+
+        if ($this->processModifications && is_callable($this->processModifications)) {
+            $processModificationsClosure = $this->processModifications;
+            $processModificationsClosure($this->process);
+        }
+
         $this->process->start();
 
         if ($this->echoLineByLineOutput) {
@@ -49,12 +57,18 @@ class Process
         return $this->process->getOutput();
     }
 
+    public function withProcessModifications(Closure $closure)
+    {
+        $this->processModifications = $closure;
+        return $this;
+    }
+
     public function getArguments(): array
     {
         return $this->arguments;
     }
 
-    public function withTimeout(int $timeout)
+    public function withTimeout(?int $timeout)
     {
         $this->timeout = $timeout;
         return $this;
