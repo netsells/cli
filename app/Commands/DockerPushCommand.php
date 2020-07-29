@@ -23,7 +23,7 @@ class DockerPushCommand extends Command
      *
      * @var string
      */
-    protected $description = 'Pushes docker-compose created images to ECR.';
+    protected $description = 'Pushes docker-compose created images to ECR';
 
     /** @var Helpers $helpers */
     protected $helpers;

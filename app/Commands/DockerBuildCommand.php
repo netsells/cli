@@ -23,7 +23,7 @@ class DockerBuildCommand extends Command
      *
      * @var string
      */
-    protected $description = 'Builds docker-compose ready for prod.';
+    protected $description = 'Builds docker-compose ready for prod';
 
     /** @var Helpers $helpers */
     protected $helpers;
