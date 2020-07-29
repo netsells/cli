@@ -35,8 +35,9 @@ netsells
   aws:ssm:start-session    Configures your machine for SSM SSH connections
 
   docker:aws:deploy-update Updates task definition and service
-  docker:aws:push          Pushes docker-compose created images to ECR.
-  docker:build             Builds docker-compose ready for prod.
+  docker:aws:login         Logs into docker via the AWS account
+  docker:aws:push          Pushes docker-compose created images to ECR
+  docker:build             Builds docker-compose ready for prod
 ```
 
 ## Netsells File Reference
