@@ -7,14 +7,14 @@ use App\Exceptions\ProcessFailed;
 use LaravelZero\Framework\Commands\Command;
 use Symfony\Component\Console\Input\InputArgument;
 
-class AwsSsmStartSession extends Command
+class AwsSsmSendSshKey extends Command
 {
     /**
      * The signature of the command.
      *
      * @var string
      */
-    protected $signature = 'aws:ssm:start-session';
+    protected $signature = 'aws:ssm:send-ssh-key';
 
     /**
      * The description of the command.
@@ -60,12 +60,6 @@ class AwsSsmStartSession extends Command
             $this->error('Failed to send remote command');
             return 1;
         }
-
-        // We can't actually run this in PHP as we can't pass the output to OpenSSH,
-        // we'll echo the command instead then it can be ran by bash
-        $process = $this->helpers->aws()->ssm()->startSessionProcess($this, $instanceId);
-
-        $this->line(implode(' ', $process->getArguments()));
 
         return 0;
     }
@@ -114,8 +108,8 @@ class AwsSsmStartSession extends Command
         return trim(<<<EOF
             u=\$(getent passwd $username) && x=\$(echo \$u |cut -d: -f6) || exit 1
             install -d -m700 -o$username \${x}/.ssh; grep '$key' \${x}/.ssh/authorized_keys && exit 1
-            printf '$key'|tee -a \${x}/.ssh/authorized_keys && sleep 15
-            sed -i s,'$key',, \${x}/.ssh/authorized_keys
+            printf '\n$key'|tee -a \${x}/.ssh/authorized_keys && sleep 15
+            sed -i s,'$key',, \${x}/.ssh/authorized_keys && sed -i '/^$/d' \${x}/.ssh/authorized_keys
 EOF);
     }
 }

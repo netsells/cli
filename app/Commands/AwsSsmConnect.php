@@ -42,7 +42,6 @@ class AwsSsmConnect extends Command
             new InputOption('tunnel-remote-server', null, InputOption::VALUE_OPTIONAL, 'The SSH tunnel remote server'),
             new InputOption('tunnel-remote-port', null, InputOption::VALUE_OPTIONAL, 'The SSH tunnel remote port'),
             new InputOption('tunnel-local-port', null, InputOption::VALUE_OPTIONAL, 'The SSH tunnel local port'),
-            new InputOption('show-command', null, InputOption::VALUE_NONE, 'Shows the SSH command instead of running it'),
         ], $this->helpers->aws()->commonConsoleOptions()));
     }
 
@@ -67,21 +66,24 @@ class AwsSsmConnect extends Command
         $rebuildOptions = $this->appendResolvedArgument($rebuildOptions, 'username', $username);
         $rebuildOptions = $this->appendResolvedArgument($rebuildOptions, 'instance-id', $instanceId);
 
-        $awsOptions = implode(' ', [
-            '--aws-profile', $this->option('aws-profile') ?: 'default',
-            '--aws-region', $this->option('aws-region') ?: 'eu-west-2',
-        ]);
+        $awsOptions = [
+            '--aws-profile' => $this->option('aws-profile') ?: 'default',
+            '--aws-region' => $this->option('aws-region') ?: 'eu-west-2',
+        ];
 
         $rebuildOptions = $this->appendResolvedArgument($rebuildOptions, 'aws-profile');
         $rebuildOptions = $this->appendResolvedArgument($rebuildOptions, 'aws-region');
+
+        \Illuminate\Support\Facades\Artisan::call('aws:ssm:send-ssh-key', array_merge(['username' => $username, 'instance-id' => $instanceId], $awsOptions));
+        $sessionCommand = $this->helpers->aws()->ssm()->startSessionProcess($this, $instanceId);
+        $sessionCommandString = implode(' ', $sessionCommand->getArguments());
 
         $options = [
             '-o', 'IdentityFile ~/.ssh/netsells-cli-ssm-ssh-tmp',
             '-o', 'IdentitiesOnly yes',
             '-o', 'GSSAPIAuthentication no',
             '-o', 'PasswordAuthentication no',
-            '-o', "ProxyCommand bash -c \"$(netsells aws:ssm:start-session {$username} {$instanceId} {$awsOptions})\"",
-            '-vvv',
+            '-o', "ProxyCommand {$sessionCommandString}",
         ];
 
         if ($this->option('tunnel')) {
@@ -98,31 +100,22 @@ class AwsSsmConnect extends Command
             $rebuildOptions = $this->appendResolvedArgument($rebuildOptions, 'tunnel-local-port', $tunnelLocalPort);
         }
 
-        if ($this->option('show-command')) {
-            $command = sprintf("ssh %s %s@%s", implode(' ', $options), $username, $instanceId);
-
-            $this->info("Run the following command to connect:");
+        $this->info("Establishing an SSH connection with {$instanceId}, this may take a few seconds...");
+        try {
+            $this->helpers->process()->withCommand(array_merge([
+                'ssh',
+            ], $options, [
+                sprintf("%s@%s", $username, $instanceId)
+            ]))
+            ->withTimeout(null)
+            ->withProcessModifications(function ($process) {
+                $process->setTty(Process::isTtySupported());
+                $process->setIdleTimeout(null);
+            })
+            ->run();
+        } catch (ProcessFailed $e) {
             $this->info(' ');
-            $this->comment($command);
-            $this->info(' ');
-        } else {
-            $this->info("Establishing an SSH connection with {$instanceId}, this may take a few seconds...");
-            try {
-                $this->helpers->process()->withCommand(array_merge([
-                    'ssh',
-                ], $options, [
-                    sprintf("%s@%s", $username, $instanceId)
-                ]))
-                ->withTimeout(null)
-                ->withProcessModifications(function ($process) {
-                    $process->setTty(Process::isTtySupported());
-                    $process->setIdleTimeout(null);
-                })
-                ->run();
-            } catch (ProcessFailed $e) {
-                $this->info(' ');
-                $this->error("SSH command exited with an exit code of " . $e->getCode());
-            }
+            $this->error("SSH command exited with an exit code of " . $e->getCode());
         }
 
         $this->info(' ');
