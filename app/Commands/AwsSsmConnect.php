@@ -7,6 +7,7 @@ use App\Helpers\Helpers;
 use Symfony\Component\Process\Process;
 use LaravelZero\Framework\Commands\Command;
 use Symfony\Component\Console\Input\InputOption;
+use Symfony\Component\Console\Output\OutputInterface;
 
 class AwsSsmConnect extends Command
 {
@@ -23,6 +24,8 @@ class AwsSsmConnect extends Command
      * @var string
      */
     protected $description = 'Connect to an server via SSH';
+
+    protected $tempKeyName = 'netsells-cli-ssm-ssh-tmp';
 
     /** @var Helpers $helpers */
     protected $helpers;
@@ -74,7 +77,15 @@ class AwsSsmConnect extends Command
         $rebuildOptions = $this->appendResolvedArgument($rebuildOptions, 'aws-profile');
         $rebuildOptions = $this->appendResolvedArgument($rebuildOptions, 'aws-region');
 
-        \Illuminate\Support\Facades\Artisan::call('aws:ssm:send-ssh-key', array_merge(['username' => $username, 'instance-id' => $instanceId], $awsOptions));
+        $key = $this->generateTempSshKey();
+        $command = $this->generateRemoteCommand($username, $key);
+
+        $this->info("Sending a temporary SSH key to the server...", OutputInterface::VERBOSITY_VERBOSE);
+        if (!$this->helpers->aws()->ssm()->sendRemoteCommand($this, $instanceId, $command)) {
+            $this->error('Failed to send SSH key to server');
+            return 1;
+        }
+
         $sessionCommand = $this->helpers->aws()->ssm()->startSessionProcess($this, $instanceId);
         $sessionCommandString = implode(' ', $sessionCommand->getArguments());
 
@@ -173,5 +184,54 @@ class AwsSsmConnect extends Command
         });
 
         return $this->menu("Choose an instance to connect to...", $instances->toArray())->open();
+    }
+
+    private function generateTempSshKey()
+    {
+        $requiredBinaries = ['aws', 'ssh', 'ssh-keygen'];
+
+        if ($this->helpers->checks()->checkAndReportMissingBinaries($this, $requiredBinaries)) {
+            return 1;
+        }
+
+        $sshDir = $_SERVER['HOME'] . '/.ssh/';
+        $keyName = $sshDir . $this->tempKeyName;
+        $pubKeyName = "{$keyName}.pub";
+
+        if (file_exists($keyName)) {
+            unlink($keyName);
+        }
+
+        if (file_exists($pubKeyName)) {
+            unlink($pubKeyName);
+        }
+
+        try {
+            $this->helpers->process()
+                ->withCommand([
+                    'ssh-keygen',
+                    '-t', 'ed25519',
+                    '-N', "",
+                    '-f', $keyName,
+                    '-C', "netsells-cli-ssm-ssh-session"
+                ])
+                ->run();
+        } catch (ProcessFailed $e) {
+            $this->error("Unable to generate temp ssh key.");
+            return false;
+        }
+
+        return trim(file_get_contents($pubKeyName));
+    }
+
+    private function generateRemoteCommand($username, $key)
+    {
+        // Borrowed from https://github.com/elpy1/ssh-over-ssm/blob/master/ssh-ssm.sh#L10
+        return trim(<<<EOF
+            u=\$(getent passwd $username) && x=\$(echo \$u |cut -d: -f6) || exit 1
+            install -d -m700 -o$username \${x}/.ssh; grep '$key' \${x}/.ssh/authorized_keys && exit 1
+            printf '\n$key'|tee -a \${x}/.ssh/authorized_keys && sleep 15
+            sed -i s,'$key',, \${x}/.ssh/authorized_keys && sed -i '/^$/d' \${x}/.ssh/authorized_keys
+EOF);
     }
 }
