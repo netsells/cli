@@ -23,7 +23,7 @@ class AwsSsmConnect extends Command
      *
      * @var string
      */
-    protected $description = 'Connect to an server via SSH';
+    protected $description = 'Connect to an server via SSH (Use --tunnel to establish an SSH tunnel)';
 
     protected $tempKeyName = 'netsells-cli-ssm-ssh-tmp';
 

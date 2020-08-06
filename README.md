@@ -31,8 +31,7 @@ netsells
   USAGE: netsells <command> [options] [arguments]
 
   aws:ec2:list             List the instances available
-  aws:ssm:connect          Connect to an server via SSH
-  aws:ssm:send-ssh-key     Configures your machine for SSM SSH connections
+  aws:ssm:connect          Connect to an server via SSH (Use --tunnel to establish an SSH tunnel)
 
   docker:aws:deploy-update Updates task definition and service
   docker:aws:login         Logs into docker via the AWS account
