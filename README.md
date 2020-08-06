@@ -63,3 +63,40 @@ docker:
                 command: LARAVEL_DATABASE_MIGRATIONS # Using a constant
                 # command: ["php", "artisan", "migrate", "--force"] # List syntax, same as dockerfile - https://docs.docker.com/engine/reference/builder/#cmd
 ```
+
+## Command Reference
+
+* [aws:ec2:list](#aws:ec2:list) - List the instances available
+* [aws:ssm:connect](#aws:ssm:connect) - Connect to an server via SSH (Use --tunnel to establish an SSH tunnel)
+
+
+### aws:ec2:list
+
+```
+netsells aws:ec2:list
+```
+
+Returns a list of ec2 instances on the AWS account
+
+**Available Arguments**
+* `--aws-profile=` - Override the AWS profile to use
+
+### aws:ssm:connect
+
+```
+netsells aws:ssm:connect
+```
+
+Establishes a command to a server over SSH. This command first generates a temporary SSH key, sends it to the server via SSM SendCommand feature which then allows 15 seconds for the SSH client to connect via the SSM session.
+
+If you don't supply any options, you will be asked for them. `--tunnel` is required to establish an SSH tunnel (typically used for MySQL).
+
+**Available Arguments**
+* `--aws-profile=` - The name of the AWS profile to use
+* `--instance-id=` - The instance ID to connect to
+* `--username=` - The username connect with
+* `--tunnel` - Sets up an SSH tunnel. Required to initiate a tunnel connection
+* `--tunnel-remote-server=` - The SSH tunnel remote server
+* `--tunnel-remote-port=` - The SSH tunnel remote port
+* `--tunnel-local-port=` - The SSH tunnel local port
+* `--aws-profile=` - Override the AWS profile to use
