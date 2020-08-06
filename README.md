@@ -66,8 +66,8 @@ docker:
 
 ## Command Reference
 
-* [aws:ec2:list](#aws:ec2:list) - List the instances available
-* [aws:ssm:connect](#aws:ssm:connect) - Connect to an server via SSH (Use --tunnel to establish an SSH tunnel)
+* [aws:ec2:list](#awsec2list) - List the instances available
+* [aws:ssm:connect](#awsssmconnect) - Connect to an server via SSH (Use --tunnel to establish an SSH tunnel)
 
 
 ### aws:ec2:list
