@@ -233,7 +233,6 @@ class DeployEcsServiceUpdate extends Command
 
         return collect($dockerComposeConfig['services'])
             ->transform(function ($service, $serviceName) use ($configuredServices) {
-
                 // Ensure it's in the .netsells.yml (or passed in via --service)
                 if (!in_array($serviceName, $configuredServices)) {
                     return null;
