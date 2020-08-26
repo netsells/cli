@@ -6,6 +6,7 @@ use App\Helpers\Aws;
 use App\Helpers\Helpers;
 use App\Helpers\NetsellsFile;
 use Symfony\Component\Yaml\Yaml;
+use App\Exceptions\ProcessFailed;
 use LaravelZero\Framework\Commands\Command;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Yaml\Exception\ParseException;
@@ -48,6 +49,7 @@ class DeployEcsServiceUpdate extends Command
             new InputOption('ecs-task-definition', null, InputOption::VALUE_OPTIONAL, 'The ECS task definition name'),
             new InputOption('migrate-container', null, InputOption::VALUE_OPTIONAL, 'The container to run the migration on'),
             new InputOption('migrate-command', null, InputOption::VALUE_OPTIONAL, 'The migration command to run'),
+            new InputOption('service', null, InputOption::VALUE_OPTIONAL | InputOption::VALUE_IS_ARRAY, 'The service that should be deployed. Not defining this will deploy all services in .netsells.yml'),
         ], $this->helpers->aws()->commonConsoleOptions()));
     }
 
@@ -166,12 +168,15 @@ class DeployEcsServiceUpdate extends Command
         // Get all images
         $images = data_get($taskDefinition, 'taskDefinition.containerDefinitions.*.image');
 
-        // Seperate out just the tags
-        return array_filter($images, function ($image) use ($targetImages) {
-            list($image, $tag) = explode(':', $image);
+        // Seperate out the tags we want from the target images
+        return collect($images)
+            ->filter(function ($image) use ($targetImages) {
+                [$image, $tag] = explode(':', $image);
 
-            return in_array($image, $targetImages);
-        });
+                return in_array($image, $targetImages);
+            })
+            ->values()
+            ->all();
     }
 
     protected function generateDeploymentUrl(): string
@@ -207,31 +212,67 @@ class DeployEcsServiceUpdate extends Command
 
     protected function gatherTargetImages(): array
     {
-        $files = ['docker-compose.yml', 'docker-compose.prod.yml'];
-        $combinedYml = [];
+        $dockerComposeYml = $this->getDockerComposeConfigYml();
+        $dockerComposeConfig = [];
 
-        foreach ($files as $file) {
-            try {
-                $combinedYml = array_merge_recursive($combinedYml, Yaml::parse(file_get_contents($file)));
-            } catch (ParseException $exception) {
-                //
-            }
+        if (!$dockerComposeYml) {
+            return [];
         }
 
-        return array_filter(array_values(array_map(function ($service) {
-            if (!isset($service['image'])) {
-                return null;
-            }
+        try {
+            $dockerComposeConfig = Yaml::parse($dockerComposeYml);
+        } catch (ParseException $exception) {
+            //
+        }
 
-            $parts = explode(':', $service['image']);
-            return $parts[0];
-        }, $combinedYml['services'])));
+        $configuredServices = $this->helpers->console()->handleOverridesAndFallbacks(
+            $this->option('service'),
+            NetsellsFile::DOCKER_SERVICES,
+            []
+        );
+
+        return collect($dockerComposeConfig['services'])
+            ->transform(function ($service, $serviceName) use ($configuredServices) {
+
+                // Ensure it's in the .netsells.yml (or passed in via --service)
+                if (!in_array($serviceName, $configuredServices)) {
+                    return null;
+                }
+
+                // We're only updating services that have an image attached
+                if (!isset($service['image'])) {
+                    return null;
+                }
+
+                $parts = explode(':', $service['image']);
+                return $parts[0];
+            })
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
     }
 
     protected function updateControllingTagWithNewTag($controllingTag, $newTag): string
     {
-        list($image, $tag) = explode(':', $controllingTag);
+        [$image, $tag] = explode(':', $controllingTag);
 
         return "{$image}:{$newTag}";
+    }
+
+    protected function getDockerComposeConfigYml(): ?string
+    {
+        try {
+            return $this->helpers->process()->withCommand([
+                'docker-compose',
+                '-f', 'docker-compose.yml',
+                '-f', 'docker-compose.prod.yml',
+                'config',
+            ])
+            ->run();
+        } catch (ProcessFailed $e) {
+            $this->error("Unable to get generated config from docker-compose.");
+            return null;
+        }
     }
 }
