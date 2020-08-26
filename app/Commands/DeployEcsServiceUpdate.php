@@ -5,8 +5,10 @@ namespace App\Commands;
 use App\Helpers\Aws;
 use App\Helpers\Helpers;
 use App\Helpers\NetsellsFile;
+use Symfony\Component\Yaml\Yaml;
 use LaravelZero\Framework\Commands\Command;
 use Symfony\Component\Console\Input\InputOption;
+use Symfony\Component\Yaml\Exception\ParseException;
 
 class DeployEcsServiceUpdate extends Command
 {
@@ -74,10 +76,15 @@ class DeployEcsServiceUpdate extends Command
             return 1;
         }
 
-        $controllingTag = $this->determineControllingTag($taskDefinition);
+        $targetImages = $this->gatherTargetImages();
 
-        $this->line("Updating all images from {$controllingTag} to {$tag} in {$this->taskDefinitionName}");
-        $taskDefinition = $this->replaceOldTagsWithNew($taskDefinition, $controllingTag, $tag);
+        $controllingTags = $this->determineControllingTags($taskDefinition, $targetImages);
+
+        foreach ($controllingTags as $controllingTag) {
+            $newTag = $this->updateControllingTagWithNewTag($controllingTag, $tag);
+            $this->line("Updating images {$controllingTag} to {$newTag} in {$this->taskDefinitionName}");
+            $taskDefinition = $this->replaceOldTagWithNew($taskDefinition, $controllingTag, $newTag);
+        }
 
         $taskDefinitionJson = $this->prepareTaskDefinitionForRegister($taskDefinition);
 
@@ -135,10 +142,10 @@ class DeployEcsServiceUpdate extends Command
         return "{$this->taskDefinitionName}:{$newTaskDefinitionRevision}";
     }
 
-    protected function replaceOldTagsWithNew($taskDefinition, $oldTag, $newTag): array
+    protected function replaceOldTagWithNew($taskDefinition, $oldTag, $newTag): array
     {
         $taskDefinitionJson = json_encode($taskDefinition);
-        $taskDefinitionJson = str_replace($oldTag, $newTag, $taskDefinitionJson);
+        $taskDefinitionJson = str_replace(json_encode($oldTag), json_encode($newTag), $taskDefinitionJson);
         return json_decode($taskDefinitionJson, true);
     }
 
@@ -154,25 +161,17 @@ class DeployEcsServiceUpdate extends Command
         return json_encode($taskDefinition['taskDefinition']);
     }
 
-    protected function determineControllingTag($taskDefinition): string
+    protected function determineControllingTags($taskDefinition, array $targetImages): array
     {
         // Get all images
         $images = data_get($taskDefinition, 'taskDefinition.containerDefinitions.*.image');
 
         // Seperate out just the tags
-        $oldShas = array_map(function ($image) {
+        return array_filter($images, function ($image) use ($targetImages) {
             list($image, $tag) = explode(':', $image);
-            return $tag;
-        }, $images);
 
-        // Count how many times each happens
-        $occurenceCounts = array_count_values($oldShas);
-
-        // Sort by most occured
-        arsort($occurenceCounts);
-
-        // Grab the most occured tag
-        return array_key_first($occurenceCounts);
+            return in_array($image, $targetImages);
+        });
     }
 
     protected function generateDeploymentUrl(): string
@@ -204,5 +203,35 @@ class DeployEcsServiceUpdate extends Command
         }
 
         return true;
+    }
+
+    protected function gatherTargetImages(): array
+    {
+        $files = ['docker-compose.yml', 'docker-compose.prod.yml'];
+        $combinedYml = [];
+
+        foreach ($files as $file) {
+            try {
+                $combinedYml = array_merge_recursive($combinedYml, Yaml::parse(file_get_contents($file)));
+            } catch (ParseException $exception) {
+                //
+            }
+        }
+
+        return array_filter(array_values(array_map(function ($service) {
+            if (!isset($service['image'])) {
+                return null;
+            }
+
+            $parts = explode(':', $service['image']);
+            return $parts[0];
+        }, $combinedYml['services'])));
+    }
+
+    protected function updateControllingTagWithNewTag($controllingTag, $newTag): string
+    {
+        list($image, $tag) = explode(':', $controllingTag);
+
+        return "{$image}:{$newTag}";
     }
 }

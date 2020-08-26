@@ -66,6 +66,11 @@ class AwsSsmConnect extends Command
         $instanceId = $this->option('instance-id') ?: $this->askForInstanceId();
         $username = $this->option('username') ?: $this->askForUsername();
 
+        if (!$instanceId) {
+            $this->error("No instance ID provided.");
+            return 1;
+        }
+
         $rebuildOptions = $this->appendResolvedArgument($rebuildOptions, 'username', $username);
         $rebuildOptions = $this->appendResolvedArgument($rebuildOptions, 'instance-id', $instanceId);
 
@@ -98,6 +103,8 @@ class AwsSsmConnect extends Command
         ];
 
         if ($this->option('tunnel')) {
+            $rebuildOptions[] = '--tunnel';
+
             $tunnelRemoteServer = $this->option('tunnel-remote-server') ?: $this->askForTunnelRemoteServer();
             $tunnelRemotePort = $this->option('tunnel-remote-port') ?: $this->askForTunnelRemotePort();
             $tunnelLocalPort = $this->option('tunnel-local-port') ?: $this->askForTunnelLocalPort();
@@ -109,9 +116,16 @@ class AwsSsmConnect extends Command
             $rebuildOptions = $this->appendResolvedArgument($rebuildOptions, 'tunnel-remote-server', $tunnelRemoteServer);
             $rebuildOptions = $this->appendResolvedArgument($rebuildOptions, 'tunnel-remote-port', $tunnelRemotePort);
             $rebuildOptions = $this->appendResolvedArgument($rebuildOptions, 'tunnel-local-port', $tunnelLocalPort);
+
+            $this->sendReRunHelper($rebuildOptions);
+
+            $this->info("Establishing an SSH tunnel connection with {$instanceId}, this may take a few seconds...");
+
+            $this->comment("You should try and connect to 127.0.0.1:{$tunnelLocalPort} - there will be no futher output after this message.");
+        } else {
+            $this->info("Establishing an SSH connection with {$instanceId}, this may take a few seconds...");
         }
 
-        $this->info("Establishing an SSH connection with {$instanceId}, this may take a few seconds...");
         try {
             $this->helpers->process()->withCommand(array_merge([
                 'ssh',
@@ -129,8 +143,15 @@ class AwsSsmConnect extends Command
             $this->error("SSH command exited with an exit code of " . $e->getCode());
         }
 
-        $this->info(' ');
-        $this->info(' ');
+        if (!$this->option('tunnel')) {
+            $this->info(' ');
+            $this->info(' ');
+            $this->sendReRunHelper($rebuildOptions);
+        }
+    }
+
+    protected function sendReRunHelper($rebuildOptions): void
+    {
         $this->info("You can run this command again without having to go through options using this:");
         $this->info(' ');
         $this->comment("netsells aws:ssm:connect " . implode(' ', $rebuildOptions));
