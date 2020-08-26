@@ -60,7 +60,7 @@ class DeployEcsServiceUpdate extends Command
      */
     public function handle()
     {
-        $requiredBinaries = ['aws'];
+        $requiredBinaries = ['aws', 'docker-compose'];
 
         if ($this->helpers->checks()->checkAndReportMissingBinaries($this, $requiredBinaries)) {
             return 1;
