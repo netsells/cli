@@ -67,7 +67,7 @@ class AwsSsmConnect extends Command
         $username = $this->option('username') ?: $this->askForUsername();
 
         if (!$instanceId) {
-            $this->error("No instance ID provided.");
+            $this->error('No instance ID provided.');
             return 1;
         }
 

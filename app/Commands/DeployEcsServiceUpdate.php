@@ -213,7 +213,7 @@ class DeployEcsServiceUpdate extends Command
     protected function gatherTargetImages(): array
     {
         $dockerComposeYml = $this->getDockerComposeConfigYml();
-        $dockerComposeConfig = [];
+        $dockerComposeConfig = ['services' => []];
 
         if (!$dockerComposeYml) {
             return [];
@@ -222,7 +222,8 @@ class DeployEcsServiceUpdate extends Command
         try {
             $dockerComposeConfig = Yaml::parse($dockerComposeYml);
         } catch (ParseException $exception) {
-            //
+            $this->error("Failed to parse yml from docker-compose output.");
+            return [];
         }
 
         $configuredServices = $this->helpers->console()->handleOverridesAndFallbacks(
