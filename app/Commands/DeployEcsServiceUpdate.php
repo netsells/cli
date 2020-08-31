@@ -267,6 +267,7 @@ class DeployEcsServiceUpdate extends Command
                 'docker-compose',
                 '-f', 'docker-compose.yml',
                 '-f', 'docker-compose.prod.yml',
+                '--log-level', 'ERROR',
                 'config',
             ])
             ->run();
