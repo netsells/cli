@@ -5,8 +5,11 @@ namespace App\Commands;
 use App\Helpers\Aws;
 use App\Helpers\Helpers;
 use App\Helpers\NetsellsFile;
+use Symfony\Component\Yaml\Yaml;
+use App\Exceptions\ProcessFailed;
 use LaravelZero\Framework\Commands\Command;
 use Symfony\Component\Console\Input\InputOption;
+use Symfony\Component\Yaml\Exception\ParseException;
 
 class DeployEcsServiceUpdate extends Command
 {
@@ -46,6 +49,7 @@ class DeployEcsServiceUpdate extends Command
             new InputOption('ecs-task-definition', null, InputOption::VALUE_OPTIONAL, 'The ECS task definition name'),
             new InputOption('migrate-container', null, InputOption::VALUE_OPTIONAL, 'The container to run the migration on'),
             new InputOption('migrate-command', null, InputOption::VALUE_OPTIONAL, 'The migration command to run'),
+            new InputOption('service', null, InputOption::VALUE_OPTIONAL | InputOption::VALUE_IS_ARRAY, 'The service that should be deployed. Not defining this will deploy all services in .netsells.yml'),
         ], $this->helpers->aws()->commonConsoleOptions()));
     }
 
@@ -56,7 +60,7 @@ class DeployEcsServiceUpdate extends Command
      */
     public function handle()
     {
-        $requiredBinaries = ['aws'];
+        $requiredBinaries = ['aws', 'docker-compose'];
 
         if ($this->helpers->checks()->checkAndReportMissingBinaries($this, $requiredBinaries)) {
             return 1;
@@ -74,10 +78,15 @@ class DeployEcsServiceUpdate extends Command
             return 1;
         }
 
-        $controllingTag = $this->determineControllingTag($taskDefinition);
+        $targetImages = $this->gatherTargetImages();
 
-        $this->line("Updating all images from {$controllingTag} to {$tag} in {$this->taskDefinitionName}");
-        $taskDefinition = $this->replaceOldTagsWithNew($taskDefinition, $controllingTag, $tag);
+        $controllingTags = $this->determineControllingTags($taskDefinition, $targetImages);
+
+        foreach ($controllingTags as $controllingTag) {
+            $newTag = $this->updateControllingTagWithNewTag($controllingTag, $tag);
+            $this->line("Updating images {$controllingTag} to {$newTag} in {$this->taskDefinitionName}");
+            $taskDefinition = $this->replaceOldTagWithNew($taskDefinition, $controllingTag, $newTag);
+        }
 
         $taskDefinitionJson = $this->prepareTaskDefinitionForRegister($taskDefinition);
 
@@ -135,10 +144,10 @@ class DeployEcsServiceUpdate extends Command
         return "{$this->taskDefinitionName}:{$newTaskDefinitionRevision}";
     }
 
-    protected function replaceOldTagsWithNew($taskDefinition, $oldTag, $newTag): array
+    protected function replaceOldTagWithNew($taskDefinition, $oldTag, $newTag): array
     {
         $taskDefinitionJson = json_encode($taskDefinition);
-        $taskDefinitionJson = str_replace($oldTag, $newTag, $taskDefinitionJson);
+        $taskDefinitionJson = str_replace(json_encode($oldTag), json_encode($newTag), $taskDefinitionJson);
         return json_decode($taskDefinitionJson, true);
     }
 
@@ -154,25 +163,20 @@ class DeployEcsServiceUpdate extends Command
         return json_encode($taskDefinition['taskDefinition']);
     }
 
-    protected function determineControllingTag($taskDefinition): string
+    protected function determineControllingTags($taskDefinition, array $targetImages): array
     {
         // Get all images
         $images = data_get($taskDefinition, 'taskDefinition.containerDefinitions.*.image');
 
-        // Seperate out just the tags
-        $oldShas = array_map(function ($image) {
-            list($image, $tag) = explode(':', $image);
-            return $tag;
-        }, $images);
+        // Seperate out the tags we want from the target images
+        return collect($images)
+            ->filter(function ($image) use ($targetImages) {
+                [$image, $tag] = explode(':', $image);
 
-        // Count how many times each happens
-        $occurenceCounts = array_count_values($oldShas);
-
-        // Sort by most occured
-        arsort($occurenceCounts);
-
-        // Grab the most occured tag
-        return array_key_first($occurenceCounts);
+                return in_array($image, $targetImages);
+            })
+            ->values()
+            ->all();
     }
 
     protected function generateDeploymentUrl(): string
@@ -204,5 +208,72 @@ class DeployEcsServiceUpdate extends Command
         }
 
         return true;
+    }
+
+    protected function gatherTargetImages(): array
+    {
+        $dockerComposeYml = $this->getDockerComposeConfigYml();
+        $dockerComposeConfig = ['services' => []];
+
+        if (!$dockerComposeYml) {
+            return [];
+        }
+
+        try {
+            $dockerComposeConfig = Yaml::parse($dockerComposeYml);
+        } catch (ParseException $exception) {
+            $this->error("Failed to parse yml from docker-compose output.");
+            return [];
+        }
+
+        $configuredServices = $this->helpers->console()->handleOverridesAndFallbacks(
+            $this->option('service'),
+            NetsellsFile::DOCKER_SERVICES,
+            []
+        );
+
+        return collect($dockerComposeConfig['services'])
+            ->transform(function ($service, $serviceName) use ($configuredServices) {
+                // Ensure it's in the .netsells.yml (or passed in via --service)
+                if (!in_array($serviceName, $configuredServices)) {
+                    return null;
+                }
+
+                // We're only updating services that have an image attached
+                if (!isset($service['image'])) {
+                    return null;
+                }
+
+                $parts = explode(':', $service['image']);
+                return $parts[0];
+            })
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    protected function updateControllingTagWithNewTag($controllingTag, $newTag): string
+    {
+        [$image, $tag] = explode(':', $controllingTag);
+
+        return "{$image}:{$newTag}";
+    }
+
+    protected function getDockerComposeConfigYml(): ?string
+    {
+        try {
+            return $this->helpers->process()->withCommand([
+                'docker-compose',
+                '-f', 'docker-compose.yml',
+                '-f', 'docker-compose.prod.yml',
+                '--log-level', 'ERROR',
+                'config',
+            ])
+            ->run();
+        } catch (ProcessFailed $e) {
+            $this->error("Unable to get generated config from docker-compose.");
+            return null;
+        }
     }
 }
