@@ -154,11 +154,19 @@ class DeployEcsServiceUpdate extends Command
     protected function prepareTaskDefinitionForRegister($taskDefinition): string
     {
         // ECS does not want any of this back
-        unset($taskDefinition['taskDefinition']['taskDefinitionArn']);
-        unset($taskDefinition['taskDefinition']['revision']);
-        unset($taskDefinition['taskDefinition']['status']);
-        unset($taskDefinition['taskDefinition']['requiresAttributes']);
-        unset($taskDefinition['taskDefinition']['compatibilities']);
+        $excludeKeys = [
+            'taskDefinitionArn',
+            'revision',
+            'status',
+            'requiresAttributes',
+            'compatibilities',
+            'registeredAt',
+            'registeredBy',
+        ];
+
+        foreach ($excludeKeys as $key) {
+            unset($taskDefinition['taskDefinition'][$key]);
+        }
 
         return json_encode($taskDefinition['taskDefinition']);
     }
