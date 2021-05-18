@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-IMAGE="netsells-cli"
-VERSION="1"
+IMAGE="netsells/cli"
+VERSION="dev-docker-wrapper"
 
 DOCKER_IMAGE="$IMAGE:$VERSION"
 
