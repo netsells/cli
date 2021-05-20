@@ -37,7 +37,6 @@ exec docker run \
     --init \
     -it \
     -v $(pwd):/app \
-    -v ~/.ssh:/root/.ssh \
-    -v ~/.aws:/root/.aws \
+    -v ~/.aws:/root/.aws:ro \
     -v /var/run/docker.sock:/var/run/docker.sock \
     $DOCKER_IMAGE "$@"
