@@ -7,23 +7,23 @@ DOCKER_IMAGE="$IMAGE:$VERSION"
 
 error(){
   error_code=$1
-  echo "ERROR: $2" >&2
+  echo "We had a problem! $2" >&2
   exit $1
 }
 
 # Check for docker
-which docker > /dev/null 2>&1 || error 1 "docker not found!"
+which docker > /dev/null 2>&1 || error 1 "🐳 Docker was not found! Please install it and try again."
 
 if [[ $1 == "self-update" ]]
 then
     docker pull $DOCKER_IMAGE
 
-    docker run \
+    sudo sh -c "docker run \
         --rm \
         --init \
         --entrypoint=/bin/cat \
         $DOCKER_IMAGE \
-        /usr/local/bin/netsells-wrapper > $0
+        /usr/local/bin/netsells-wrapper > $0"
 
     exit 0
 fi
