@@ -16,14 +16,18 @@ which docker > /dev/null 2>&1 || error 1 "🐳 Docker was not found! Please inst
 
 if [[ $1 == "self-update" ]]
 then
+    echo -e "\033[0;31mUpdating CLI docker image...\033[0m"
     docker pull $DOCKER_IMAGE
 
+    echo -e "\033[0;31mUpdating CLI wrapper...\033[0m"
     sudo sh -c "docker run \
         --rm \
         --init \
         --entrypoint=/bin/cat \
         $DOCKER_IMAGE \
         /usr/local/bin/netsells-wrapper > $0"
+
+    echo -e "\033[0;31mDone!\033[0m"
 
     exit 0
 fi
