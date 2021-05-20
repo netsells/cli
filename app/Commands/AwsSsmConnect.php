@@ -25,7 +25,7 @@ class AwsSsmConnect extends Command
      */
     protected $description = 'Connect to an server via SSH (Use --tunnel to establish an SSH tunnel)';
 
-    protected $tempKeyName = 'netsells-cli-ssm-ssh-tmp';
+    protected $tempKeyName;
 
     /** @var Helpers $helpers */
     protected $helpers;
@@ -46,6 +46,15 @@ class AwsSsmConnect extends Command
             new InputOption('tunnel-remote-port', null, InputOption::VALUE_OPTIONAL, 'The SSH tunnel remote port'),
             new InputOption('tunnel-local-port', null, InputOption::VALUE_OPTIONAL, 'The SSH tunnel local port'),
         ], $this->helpers->aws()->commonConsoleOptions()));
+    }
+
+    private function tempIdentityFile(): string
+    {
+        if (!$this->tempKeyName) {
+            $this->tempKeyName = tempnam(sys_get_temp_dir(), 'NetsellsCliSsm');
+        }
+
+        return $this->tempKeyName;
     }
 
     /**
@@ -95,7 +104,7 @@ class AwsSsmConnect extends Command
         $sessionCommandString = implode(' ', $sessionCommand->getArguments());
 
         $options = [
-            '-o', 'IdentityFile /root/netsells-cli-ssm-ssh-tmp',
+            '-o', 'IdentityFile ' . $this->tempIdentityFile(),
             '-o', 'IdentitiesOnly yes',
             '-o', 'GSSAPIAuthentication no',
             '-o', 'PasswordAuthentication no',
@@ -215,7 +224,7 @@ class AwsSsmConnect extends Command
             return 1;
         }
 
-        $keyName = '/root/' . $this->tempKeyName;
+        $keyName = $this->tempIdentityFile();
         $pubKeyName = "{$keyName}.pub";
 
         if (file_exists($keyName)) {
@@ -233,7 +242,7 @@ class AwsSsmConnect extends Command
                     '-t', 'ed25519',
                     '-N', "",
                     '-f', $keyName,
-                    '-C', "netsells-cli-ssm-ssh-session"
+                    '-C', $this->tempIdentityFile()
                 ])
                 ->run();
         } catch (ProcessFailed $e) {
