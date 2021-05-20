@@ -95,7 +95,7 @@ class AwsSsmConnect extends Command
         $sessionCommandString = implode(' ', $sessionCommand->getArguments());
 
         $options = [
-            '-o', 'IdentityFile ~/.ssh/netsells-cli-ssm-ssh-tmp',
+            '-o', 'IdentityFile /root/netsells-cli-ssm-ssh-tmp',
             '-o', 'IdentitiesOnly yes',
             '-o', 'GSSAPIAuthentication no',
             '-o', 'PasswordAuthentication no',
@@ -215,8 +215,7 @@ class AwsSsmConnect extends Command
             return 1;
         }
 
-        $sshDir = $_SERVER['HOME'] . '/.ssh/';
-        $keyName = $sshDir . $this->tempKeyName;
+        $keyName = '/root/' . $this->tempKeyName;
         $pubKeyName = "{$keyName}.pub";
 
         if (file_exists($keyName)) {

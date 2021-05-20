@@ -39,6 +39,7 @@ class DockerBuildCommand extends Command
         $this->setDefinition(array_merge([
             new InputOption('tag', null, InputOption::VALUE_OPTIONAL, 'The tag that should be built with the images. Defaults to the current commit SHA'),
             new InputOption('service', null, InputOption::VALUE_OPTIONAL | InputOption::VALUE_IS_ARRAY, 'The service that should be built. Not defining this will push all services'),
+            new InputOption('environment', null, InputOption::VALUE_OPTIONAL, 'The environment to look for the image urls', 'prod'),
         ], $this->helpers->aws()->commonConsoleOptions()));
     }
 
@@ -49,7 +50,7 @@ class DockerBuildCommand extends Command
      */
     public function handle()
     {
-        $requiredBinaries = ['docker', 'docker-compose'];
+        $requiredBinaries = ['docker'];
 
         if ($this->helpers->checks()->checkAndReportMissingBinaries($this, $requiredBinaries)) {
             return 1;
@@ -96,7 +97,7 @@ class DockerBuildCommand extends Command
     {
         try {
             $this->helpers->process()->withCommand([
-                'docker-compose',
+                'docker', 'compose',
                 '-f', 'docker-compose.yml',
                 '-f', 'docker-compose.prod.yml',
                 'build', '--no-cache', $service

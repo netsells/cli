@@ -39,6 +39,7 @@ class DockerPushCommand extends Command
         $this->setDefinition(array_merge([
             new InputOption('tag', null, InputOption::VALUE_OPTIONAL, 'The tag that should be built with the images. Defaults to the current commit SHA'),
             new InputOption('service', null, InputOption::VALUE_OPTIONAL | InputOption::VALUE_IS_ARRAY, 'The service that should be pushed. Not defining this will push all services'),
+            new InputOption('environment', null, InputOption::VALUE_OPTIONAL, 'The environment to look for the image urls', 'prod'),
         ], $this->helpers->aws()->commonConsoleOptions()));
     }
 
@@ -49,13 +50,16 @@ class DockerPushCommand extends Command
      */
     public function handle()
     {
-        $requiredBinaries = ['docker', 'docker-compose', 'aws'];
+        $requiredBinaries = ['docker', 'aws'];
 
         if ($this->helpers->checks()->checkAndReportMissingBinaries($this, $requiredBinaries)) {
             return 1;
         }
 
-        $requiredFiles = ['docker-compose.yml', 'docker-compose.prod.yml'];
+        $environmentFile = $this->envDockerComposeFileName($this->option('environment'));
+
+        $this->line("Taking docker repository URLs from {$environmentFile}");
+        $requiredFiles = ['docker-compose.yml', $environmentFile];
 
         if ($this->helpers->checks()->checkAndReportMissingFiles($this, $requiredFiles)) {
             return 1;
@@ -96,7 +100,7 @@ class DockerPushCommand extends Command
     {
          try {
             $this->helpers->process()->withCommand([
-                'docker-compose',
+                'docker', 'compose',
                 '-f', 'docker-compose.yml',
                 '-f', 'docker-compose.prod.yml',
                 'push', $service
@@ -111,5 +115,10 @@ class DockerPushCommand extends Command
         }
 
         return true;
+    }
+
+    protected function envDockerComposeFileName(string $environment): string
+    {
+        return "docker-compose.{$environment}.yml";
     }
 }
