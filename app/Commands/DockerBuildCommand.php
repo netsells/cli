@@ -39,7 +39,6 @@ class DockerBuildCommand extends Command
         $this->setDefinition(array_merge([
             new InputOption('tag', null, InputOption::VALUE_OPTIONAL, 'The tag that should be built with the images. Defaults to the current commit SHA'),
             new InputOption('service', null, InputOption::VALUE_OPTIONAL | InputOption::VALUE_IS_ARRAY, 'The service that should be built. Not defining this will push all services'),
-            new InputOption('environment', null, InputOption::VALUE_OPTIONAL, 'The environment to look for the image urls', 'prod'),
         ], $this->helpers->aws()->commonConsoleOptions()));
     }
 

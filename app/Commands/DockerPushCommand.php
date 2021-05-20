@@ -39,7 +39,6 @@ class DockerPushCommand extends Command
         $this->setDefinition(array_merge([
             new InputOption('tag', null, InputOption::VALUE_OPTIONAL, 'The tag that should be built with the images. Defaults to the current commit SHA'),
             new InputOption('service', null, InputOption::VALUE_OPTIONAL | InputOption::VALUE_IS_ARRAY, 'The service that should be pushed. Not defining this will push all services'),
-            new InputOption('environment', null, InputOption::VALUE_OPTIONAL, 'The environment to look for the image urls', 'prod'),
         ], $this->helpers->aws()->commonConsoleOptions()));
     }
 
@@ -56,10 +55,7 @@ class DockerPushCommand extends Command
             return 1;
         }
 
-        $environmentFile = $this->envDockerComposeFileName($this->option('environment'));
-
-        $this->line("Taking docker repository URLs from {$environmentFile}");
-        $requiredFiles = ['docker-compose.yml', $environmentFile];
+        $requiredFiles = ['docker-compose.yml', 'docker-compose.prod.yml'];
 
         if ($this->helpers->checks()->checkAndReportMissingFiles($this, $requiredFiles)) {
             return 1;
