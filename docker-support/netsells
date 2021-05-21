@@ -110,7 +110,7 @@ then
         --init \
         -it \
         -p $TUNNEL_LOCAL_PORT:$TUNNEL_LOCAL_PORT \
-        -v sshvol:/root/.ssh \
+        -v 'sshvol:/root/.ssh' \
         -v $(pwd):/app \
         -v ~/.aws:/root/.aws:ro \
         -v /var/run/docker.sock:/var/run/docker.sock \
@@ -120,7 +120,7 @@ else
         --rm \
         --init \
         -it \
-        -v sshvol:/root/.ssh \ # Persist the .ssh folder so we keep the known_hosts file
+        -v 'sshvol:/root/.ssh' \
         -v $(pwd):/app \
         -v ~/.aws:/root/.aws:ro \
         -v /var/run/docker.sock:/var/run/docker.sock \
