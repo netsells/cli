@@ -240,7 +240,7 @@ class AwsSsmConnect extends Command
                 ->withCommand([
                     'ssh-keygen',
                     '-t', 'ed25519',
-                    '-N', "",
+                    '-N', '',
                     '-f', $keyName,
                     '-C', $this->tempIdentityFile()
                 ])
