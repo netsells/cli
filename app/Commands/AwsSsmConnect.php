@@ -120,7 +120,7 @@ class AwsSsmConnect extends Command
 
             $options[] = '-N';
             $options[] = '-L';
-            $options[] = sprintf('%s:%s:%s', $tunnelLocalPort, $tunnelRemoteServer, $tunnelRemotePort);
+            $options[] = sprintf('0.0.0.0:%s:%s:%s', $tunnelLocalPort, $tunnelRemoteServer, $tunnelRemotePort);
 
             $rebuildOptions = $this->appendResolvedArgument($rebuildOptions, 'tunnel-remote-server', $tunnelRemoteServer);
             $rebuildOptions = $this->appendResolvedArgument($rebuildOptions, 'tunnel-remote-port', $tunnelRemotePort);
