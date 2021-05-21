@@ -25,7 +25,7 @@ class AwsSsmConnect extends Command
      */
     protected $description = 'Connect to an server via SSH (Use --tunnel to establish an SSH tunnel)';
 
-    protected $tempKeyName;
+    protected $tempIdentityFile;
 
     /** @var Helpers $helpers */
     protected $helpers;
@@ -50,11 +50,11 @@ class AwsSsmConnect extends Command
 
     private function tempIdentityFile(): string
     {
-        if (!$this->tempKeyName) {
-            $this->tempKeyName = tempnam(sys_get_temp_dir(), 'NetsellsCliSsm');
+        if (!$this->tempIdentityFile) {
+            $this->tempIdentityFile = tempnam(sys_get_temp_dir(), 'NetsellsCliSsm');
         }
 
-        return $this->tempKeyName;
+        return $this->tempIdentityFile;
     }
 
     /**
