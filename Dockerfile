@@ -10,7 +10,7 @@ FROM php:7.4-cli as build
 
 ARG DOCKER_TAG
 
-# Deps
+# Deps
 RUN apt-get update && apt-get install -y \
   unzip \
   git
@@ -32,7 +32,7 @@ RUN php netsells app:build --build-version=$DOCKER_TAG
 ##
 FROM php:7.4-cli as runtime
 
-# Grab built phar from the builder
+# Grab built phar from the builder
 COPY --from=build /app/builds/netsells /usr/local/bin/netsells
 
 # Copy the wrapper from source
@@ -41,7 +41,7 @@ COPY ./docker-support/netsells /usr/local/bin/netsells-wrapper
 # Copy the docker config to use ecr auth
 COPY ./docker-support/docker-config.json /root/.docker/config.json
 
-# Deps
+# Deps
 RUN apt-get update && apt-get install -y \
   unzip \
   git \

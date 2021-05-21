@@ -82,7 +82,7 @@ error(){
   exit $1
 }
 
-# Check for docker
+# Check for docker
 which docker > /dev/null 2>&1 || error 1 "🐳 Docker was not found! Please install it and try again."
 
 if test "$1" = "self-update"; then
