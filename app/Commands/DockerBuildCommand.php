@@ -49,7 +49,7 @@ class DockerBuildCommand extends Command
      */
     public function handle()
     {
-        $requiredBinaries = ['docker'];
+        $requiredBinaries = ['docker', 'docker-compose'];
 
         if ($this->helpers->checks()->checkAndReportMissingBinaries($this, $requiredBinaries)) {
             return 1;
@@ -96,7 +96,7 @@ class DockerBuildCommand extends Command
     {
         try {
             $this->helpers->process()->withCommand([
-                'docker', 'compose',
+                'docker-compose',
                 '-f', 'docker-compose.yml',
                 '-f', 'docker-compose.prod.yml',
                 'build', '--no-cache', $service

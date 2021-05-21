@@ -60,7 +60,7 @@ class DeployEcsServiceUpdate extends Command
      */
     public function handle()
     {
-        $requiredBinaries = ['aws', 'docker'];
+        $requiredBinaries = ['aws', 'docker', 'docker-compose'];
 
         if ($this->helpers->checks()->checkAndReportMissingBinaries($this, $requiredBinaries)) {
             return 1;
@@ -230,7 +230,7 @@ class DeployEcsServiceUpdate extends Command
         try {
             $dockerComposeConfig = Yaml::parse($dockerComposeYml);
         } catch (ParseException $exception) {
-            $this->error("Failed to parse yml from docker compose output.");
+            $this->error("Failed to parse yml from docker-compose output.");
             return [];
         }
 
@@ -272,7 +272,7 @@ class DeployEcsServiceUpdate extends Command
     {
         try {
             return $this->helpers->process()->withCommand([
-                'docker', 'compose',
+                'docker-compose',
                 '-f', 'docker-compose.yml',
                 '-f', 'docker-compose.prod.yml',
                 '--log-level', 'ERROR',
