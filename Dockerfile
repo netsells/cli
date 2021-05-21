@@ -38,11 +38,15 @@ COPY --from=build /app/builds/netsells /usr/local/bin/netsells
 # Copy the wrapper from source
 COPY ./docker-support/netsells /usr/local/bin/netsells-wrapper
 
+# Copy the docker config to use ecr auth
+COPY ./docker-support/docker-config.json /root/.docker/config.json
+
 # Deps
 RUN apt-get update && apt-get install -y \
   unzip \
   git \
-  docker.io
+  docker.io \
+  amazon-ecr-credential-helper
 
 # Docker compose
 RUN curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose && chmod +x /usr/local/bin/docker-compose
