@@ -112,9 +112,4 @@ class DockerPushCommand extends Command
 
         return true;
     }
-
-    protected function envDockerComposeFileName(string $environment): string
-    {
-        return "docker-compose.{$environment}.yml";
-    }
 }
