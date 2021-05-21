@@ -85,8 +85,7 @@ error(){
 # Check for docker
 which docker > /dev/null 2>&1 || error 1 "🐳 Docker was not found! Please install it and try again."
 
-if [[ $1 == "self-update" ]]
-then
+if test "$1" = "self-update"; then
     echo "\033[0;31mUpdating CLI docker image...\033[0m"
     docker pull $DOCKER_IMAGE
 
@@ -103,8 +102,7 @@ then
     exit 0
 fi
 
-if [[ $TUNNEL_LOCAL_PORT ]]
-then
+if test "" != "$TUNNEL_LOCAL_PORT"; then
     exec docker run \
         --rm \
         --init \
