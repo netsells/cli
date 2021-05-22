@@ -10,7 +10,7 @@ The Netsells Command Line Interface (CLI).
 
 Run the following commands to download and install. `/usr/local/bin` should be in your `$PATH` in order to call `netsells` anywhere.
 
-```bash
+```shell
 # Install PHAR, requires PHP
 curl -L -o netsells.phar https://netsells-cli.now.sh/download/cli
 mv netsells.phar /usr/local/bin/netsells
@@ -44,6 +44,13 @@ netsells
   docker:build             Builds docker-compose ready for prod
 ```
 
+### Development
+To build the docker image:
+```shell
+$ DOCKER_TAG=latest DOCKERFILE_PATH=Dockerfile IMAGE_NAME=netsells/cli hooks/build
+```
+
+
 ## Netsells File Reference
 
 The CLI will look for configuration in the arguments/options supplied via the command line, falling back to the Netsells file. This should be placed at the root of your project and called `.netsells.yml`.
@@ -72,7 +79,7 @@ docker:
 ## Command Reference
 
 * [aws:ec2:list](#awsec2list) - List the instances available
-* [aws:ssm:connect](#awsssmconnect) - Connect to an server via SSH (Use --tunnel to establish an SSH tunnel)
+* [aws:ssm:connect](#awsssmconnect) - Connect to a server via SSH (Use --tunnel to establish an SSH tunnel)
 
 
 ### aws:ec2:list
