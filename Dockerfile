@@ -32,31 +32,33 @@ RUN php netsells app:build --build-version=$DOCKER_TAG
 ##
 FROM php:7.4-cli as runtime
 
-# Grab built phar from the builder
-COPY --from=build /app/builds/netsells /usr/local/bin/netsells
+# Deps
+RUN apt-get update && \
+  apt-get install -y --no-install-recommends \
+    unzip git openssh-client amazon-ecr-credential-helper && \
+  apt-get purge -y autoconf pkg-config gcc && \
+  apt-get autoremove -y && \
+  apt-get autoclean && \
+  apt-get clean && \
+  curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" \
+    -o /usr/local/bin/docker-compose && chmod +x /usr/local/bin/docker-compose && \
+  curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" \
+    -o "awscliv2.zip" && unzip -q awscliv2.zip && ./aws/install && rm awscliv2.zip && rm -rf ./aws && \
+  curl "https://s3.amazonaws.com/session-manager-downloads/plugin/latest/ubuntu_64bit/session-manager-plugin.deb" \
+    -o "session-manager-plugin.deb" && dpkg -i session-manager-plugin.deb && rm session-manager-plugin.deb && \
+  rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-# Copy the wrapper from source
-COPY ./docker-support/netsells /usr/local/bin/netsells-wrapper
+# Grab docker client from existing docker image
+COPY --from=docker:20-dind /usr/local/bin/docker /usr/local/bin/docker
 
 # Copy the docker config to use ecr auth
 COPY ./docker-support/docker-config.json /root/.docker/config.json
 
-# Deps
-RUN apt-get update && apt-get install -y \
-  unzip \
-  git \
-  docker.io \
-  amazon-ecr-credential-helper
+# Copy the wrapper from source
+COPY ./docker-support/netsells /usr/local/bin/netsells-wrapper
 
-# Docker compose
-RUN curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose && chmod +x /usr/local/bin/docker-compose
-
-
-# AWS CLI
-RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" && unzip awscliv2.zip && ./aws/install && rm awscliv2.zip
-
-# Session Manager
-RUN curl "https://s3.amazonaws.com/session-manager-downloads/plugin/latest/ubuntu_64bit/session-manager-plugin.deb" -o "session-manager-plugin.deb" && dpkg -i session-manager-plugin.deb && rm session-manager-plugin.deb
+# Grab built phar from the builder
+COPY --from=build /app/builds/netsells /usr/local/bin/netsells
 
 RUN mkdir /app
 WORKDIR /app

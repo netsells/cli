@@ -2,3 +2,5 @@ vendor/
 .git/
 .vscode/
 .idea/
+hooks
+Dockerfile
