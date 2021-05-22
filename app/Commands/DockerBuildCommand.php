@@ -68,10 +68,12 @@ class DockerBuildCommand extends Command
             []
         );
 
-        $loginSuccessful = $this->helpers->aws()->ecs()->authenticateDocker($this);
+        if ($this->helpers->checks()->missingBinaries(['docker-credential-ecr-login'])) {
+            $loginSuccessful = $this->helpers->aws()->ecs()->authenticateDocker($this);
 
-        if (!$loginSuccessful) {
-            return 1;
+            if (!$loginSuccessful) {
+                return 1;
+            }
         }
 
         if (count($services) == 0) {
