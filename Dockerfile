@@ -60,6 +60,8 @@ COPY ./docker-support/netsells /usr/local/bin/netsells-wrapper
 # Grab built phar from the builder
 COPY --from=build /app/builds/netsells /usr/local/bin/netsells
 
+ENV AWS_SDK_LOAD_CONFIG 1
+
 RUN mkdir /app
 WORKDIR /app
 
