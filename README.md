@@ -11,9 +11,14 @@ The Netsells Command Line Interface (CLI).
 Run the following commands to download and install. `/usr/local/bin` should be in your `$PATH` in order to call `netsells` anywhere.
 
 ```bash
+# Install PHAR, requires PHP
 curl -L -o netsells.phar https://netsells-cli.now.sh/download/cli
 mv netsells.phar /usr/local/bin/netsells
 chmod +x /usr/local/bin/netsells
+netsells
+
+# Or install the Docker wrapper
+docker run --rm --init --entrypoint=/bin/cat netsells/cli:latest /usr/local/bin/netsells-wrapper > /usr/local/bin/netsells
 netsells
 ```
 
