@@ -109,6 +109,7 @@ if test "" != "$TUNNEL_LOCAL_PORT"; then
         -it \
         -p $TUNNEL_LOCAL_PORT:$TUNNEL_LOCAL_PORT \
         -v 'sshvol:/root/.ssh' \
+        -v 'dockervol:/root/.docker' \
         -v $(pwd):/app \
         -v ~/.aws:/root/.aws:ro \
         -v /var/run/docker.sock:/var/run/docker.sock \
@@ -119,6 +120,7 @@ else
         --init \
         -it \
         -v 'sshvol:/root/.ssh' \
+        -v 'dockervol:/root/.docker' \
         -v $(pwd):/app \
         -v ~/.aws:/root/.aws:ro \
         -v /var/run/docker.sock:/var/run/docker.sock \

@@ -35,7 +35,7 @@ FROM php:7.4-cli as runtime
 # Deps
 RUN apt-get update && \
   apt-get install -y --no-install-recommends \
-    unzip git openssh-client amazon-ecr-credential-helper && \
+    unzip git openssh-client && \
   apt-get purge -y autoconf pkg-config gcc && \
   apt-get autoremove -y && \
   apt-get autoclean && \
@@ -50,9 +50,6 @@ RUN apt-get update && \
 
 # Grab docker client from existing docker image
 COPY --from=docker:20-dind /usr/local/bin/docker /usr/local/bin/docker
-
-# Copy the docker config to use ecr auth
-COPY ./docker-support/docker-config.json /root/.docker/config.json
 
 # Copy the wrapper from source
 COPY ./docker-support/netsells /usr/local/bin/netsells-wrapper
