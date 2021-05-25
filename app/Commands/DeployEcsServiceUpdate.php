@@ -45,12 +45,14 @@ class DeployEcsServiceUpdate extends Command
     {
         $this->setDefinition(array_merge([
             new InputOption('tag', null, InputOption::VALUE_OPTIONAL, 'The tag that should be built with the images. Defaults to the current commit SHA'),
+            new InputOption('tag-prefix', null, InputOption::VALUE_OPTIONAL, 'The tag prefix that should be built with the images. Defaults to null'),
             new InputOption('ecs-service', null, InputOption::VALUE_OPTIONAL, 'The ECS service name'),
             new InputOption('ecs-cluster', null, InputOption::VALUE_OPTIONAL, 'The ECS cluster name'),
             new InputOption('ecs-task-definition', null, InputOption::VALUE_OPTIONAL, 'The ECS task definition name'),
             new InputOption('migrate-container', null, InputOption::VALUE_OPTIONAL, 'The container to run the migration on'),
             new InputOption('migrate-command', null, InputOption::VALUE_OPTIONAL, 'The migration command to run'),
             new InputOption('service', null, InputOption::VALUE_OPTIONAL | InputOption::VALUE_IS_ARRAY, 'The service that should be deployed. Not defining this will deploy all services in .netsells.yml'),
+            new InputOption('environment', null, InputOption::VALUE_OPTIONAL, 'The destination environment for the images'),
         ], $this->helpers->aws()->commonConsoleOptions()));
     }
 
@@ -67,7 +69,7 @@ class DeployEcsServiceUpdate extends Command
             return 1;
         }
 
-        $tag = trim($this->option('tag') ?: $this->helpers->git()->currentSha());
+        $tag = $this->helpers->docker()->prefixedTag($this);
 
         if (!$this->determineRequiredOptions()) {
             return 1;

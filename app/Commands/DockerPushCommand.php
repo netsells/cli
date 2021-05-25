@@ -40,6 +40,8 @@ class DockerPushCommand extends Command
         $this->setDefinition(array_merge([
             new InputOption('tag', null, InputOption::VALUE_OPTIONAL, 'The tag that should be built with the images. Defaults to the current commit SHA'),
             new InputOption('tag-prefix', null, InputOption::VALUE_OPTIONAL, 'The tag prefix that should be built with the images. Defaults to null'),
+            new InputOption('environment', null, InputOption::VALUE_OPTIONAL, 'The destination environment for the images'),
+            new InputOption('skip-additional-tags', null, InputOption::VALUE_NONE, 'Skips the latest and environment tags'),
             new InputOption('service', null, InputOption::VALUE_OPTIONAL | InputOption::VALUE_IS_ARRAY, 'The service that should be pushed. Not defining this will push all services'),
         ], $this->helpers->aws()->commonConsoleOptions()));
     }
@@ -63,8 +65,6 @@ class DockerPushCommand extends Command
             return 1;
         }
 
-        $tag = $this->helpers->docker()->prefixedTag($this);
-
         $services = $this->helpers->console()->handleOverridesAndFallbacks(
             OverridesAndFallbacks::withConsole($this->option('service'))
                 ->envVar('SERVICE')
@@ -78,17 +78,23 @@ class DockerPushCommand extends Command
             return 1;
         }
 
+        $tags = $this->helpers->docker()->determineTags($this);
+
         if (count($services) == 0) {
             // Generic full file build as we have no services
-            $this->line("Pushing docker images for all services with tag {$tag}");
-            $this->callPush($tag);
+            $this->line("Pushing docker images for all services with tags " . implode(', ', $tags));
+            $this->callPush($tags);
         }
 
         // We've been provided services, we'll run the command for each
-        $this->line("Pushing docker images for services with tag {$tag}: " . implode(',', $services));
+        $this->line(sprintf(
+            "Pushing docker images for services with tags %s: %s",
+            implode(', ', $tags),
+            implode(',', $services)
+        ));
 
         foreach ($services as $service) {
-            if (!$this->callPush($tag, $service)) {
+            if (!$this->callPush($tags, $service)) {
                 return 1;
             }
         }
@@ -96,22 +102,30 @@ class DockerPushCommand extends Command
         $this->info("Docker images pushed.");
     }
 
-    protected function callPush(string $tag, string $service = null): bool
+    protected function callPush(array $tags, string $service = null): bool
     {
-         try {
-            $this->helpers->process()->withCommand([
-                'docker-compose',
-                '-f', 'docker-compose.yml',
-                '-f', 'docker-compose.prod.yml',
-                'push', $service
-            ])
-            ->withEnvironmentVars(['TAG' => $tag])
-            ->withTimeout(1200) // 20mins
-            ->echoLineByLineOutput(true)
-            ->run();
-        } catch (ProcessFailed $e) {
-            $this->error("Unable to push all items to AWS, check the above output for reasons why.");
-            return false;
+        // We need to make the new tags first
+        $sourceTag = $this->helpers->docker()->prefixedTag($this);
+        if (!$this->helpers->docker()->tagImages($this, $service, $sourceTag, $tags)) {
+            return 1;
+        }
+
+        foreach ($tags as $tag) {
+            try {
+                $this->helpers->process()->withCommand([
+                    'docker-compose',
+                    '-f', 'docker-compose.yml',
+                    '-f', 'docker-compose.prod.yml',
+                    'push', $service
+                ])
+                ->withEnvironmentVars(['TAG' => $tag])
+                ->withTimeout(1200) // 20mins
+                ->echoLineByLineOutput(true)
+                ->run();
+            } catch (ProcessFailed $e) {
+                $this->error("Unable to push all items to AWS, check the above output for reasons why.");
+                return false;
+            }
         }
 
         return true;
