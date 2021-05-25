@@ -2,20 +2,26 @@
 
 namespace App\Helpers;
 
+use App\Helpers\DataObjects\OverridesAndFallbacks;
+
 class Console
 {
-    public function handleOverridesAndFallbacks($consoleArg, string $netsellsFileKey = null, $default = null)
+    public function handleOverridesAndFallbacks(OverridesAndFallbacks $values)
     {
-        if ($consoleArg) {
-            return $consoleArg;
+        if ($values->console) {
+            return $values->console;
         }
 
-        if (is_null($netsellsFileKey)) {
-            return $default;
+        if ($envValue = getenv('NETSELLS_' . $values->envVar)) {
+            return $envValue;
+        }
+
+        if (is_null($values->netsellsFile)) {
+            return $values->default;
         }
 
         $netsellsFile = new NetsellsFile();
 
-        return $netsellsFile->get($netsellsFileKey, $default);
+        return $netsellsFile->get($values->netsellsFile, $values->default);
     }
 }

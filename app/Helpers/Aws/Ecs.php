@@ -5,6 +5,7 @@ namespace App\Helpers\Aws;
 use App\Helpers\Aws;
 use App\Helpers\NetsellsFile;
 use App\Exceptions\ProcessFailed;
+use App\Helpers\DataObjects\OverridesAndFallbacks;
 use Symfony\Component\Process\Process;
 use LaravelZero\Framework\Commands\Command;
 
@@ -20,8 +21,18 @@ class Ecs
 
     public function authenticateDocker(Command $command): bool
     {
-        $awsAccountId = $this->aws->helpers->console()->handleOverridesAndFallbacks($command->option('aws-account-id'), NetsellsFile::DOCKER_AWS_ACCOUNT_ID, Aws::DEFAULT_ACCOUNT_ID);
-        $awsRegion = $this->aws->helpers->console()->handleOverridesAndFallbacks($command->option('aws-region'), NetsellsFile::DOCKER_AWS_REGION, Aws::DEFAULT_REGION);
+        $awsAccountId = $this->aws->helpers->console()->handleOverridesAndFallbacks(
+            OverridesAndFallbacks::withConsole($command->option('aws-account-id'))
+                ->envVar('AWS_ACCOUNT_ID')
+                ->netsellsFile(NetsellsFile::DOCKER_AWS_ACCOUNT_ID)
+                ->default(Aws::DEFAULT_ACCOUNT_ID)
+        );
+        $awsRegion = $this->aws->helpers->console()->handleOverridesAndFallbacks(
+            OverridesAndFallbacks::withConsole($command->option('aws-region'))
+                ->envVar('AWS_REGION')
+                ->netsellsFile(NetsellsFile::DOCKER_AWS_REGION)
+                ->default(Aws::DEFAULT_REGION)
+        );
 
         try {
             $processOutput = $this->aws->newProcess($command, [

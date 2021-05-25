@@ -9,6 +9,11 @@ class Helpers
         return new Git();
     }
 
+    public function docker(): Docker
+    {
+        return new Docker($this);
+    }
+
     public function checks(): Checks
     {
         return new Checks();

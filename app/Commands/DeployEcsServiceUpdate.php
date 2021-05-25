@@ -9,6 +9,7 @@ use Symfony\Component\Yaml\Yaml;
 use App\Exceptions\ProcessFailed;
 use LaravelZero\Framework\Commands\Command;
 use Symfony\Component\Console\Input\InputOption;
+use App\Helpers\DataObjects\OverridesAndFallbacks;
 use Symfony\Component\Yaml\Exception\ParseException;
 
 class DeployEcsServiceUpdate extends Command
@@ -102,10 +103,19 @@ class DeployEcsServiceUpdate extends Command
         $this->helpers->aws()->ecs()->updateService($this, $this->clusterName, $this->serviceName, $newTaskDefinitionString);
         $this->line("Service updated to task definition {$newTaskDefinitionString}");
 
-        $migrateCommand = $this->helpers->console()->handleOverridesAndFallbacks($this->option('migrate-command'), NetsellsFile::DOCKER_ECS_MIGRATE_COMMAND);
-        $migrateContainer = $this->helpers->console()->handleOverridesAndFallbacks($this->option('migrate-container'), NetsellsFile::DOCKER_ECS_MIGRATE_CONTAINER);
+        $migrateCommand = $this->helpers->console()->handleOverridesAndFallbacks(
+            OverridesAndFallbacks::withConsole($this->option('migrate-command'))
+                ->envVar('MIGRATE_COMMAND')
+                ->netsellsFile(NetsellsFile::DOCKER_ECS_MIGRATE_COMMAND)
+        );
+        $migrateContainer = $this->helpers->console()->handleOverridesAndFallbacks(
+            OverridesAndFallbacks::withConsole($this->option('migrate-container'))
+                ->envVar('MIGRATE_CONTAINER')
+                ->netsellsFile(NetsellsFile::DOCKER_ECS_MIGRATE_CONTAINER)
+        );
 
         if ($migrateCommand && $migrateContainer) {
+            $this->error('The migrate option will be deprecated in the next major version.');
             $this->line("Migrate command detected, running as a one-off task.");
 
             $this->runMigrateCommand($migrateCommand, $newTaskDefinitionString, $migrateContainer);
@@ -189,25 +199,33 @@ class DeployEcsServiceUpdate extends Command
 
     protected function generateDeploymentUrl(): string
     {
-        $awsRegion = $this->helpers->console()->handleOverridesAndFallbacks($this->option('aws-region'), NetsellsFile::DOCKER_AWS_REGION, Aws::DEFAULT_REGION);
+        $awsRegion = $this->helpers->console()->handleOverridesAndFallbacks(
+            OverridesAndFallbacks::withConsole($this->option('aws-region'))
+                ->envVar('AWS_REGION')
+                ->netsellsFile(NetsellsFile::DOCKER_AWS_REGION)
+                ->default(Aws::DEFAULT_REGION)
+        );
         return "https://{$awsRegion}.console.aws.amazon.com/ecs/home#/clusters/{$this->clusterName}/services/{$this->serviceName}/deployments";
     }
 
     protected function determineRequiredOptions(): bool
     {
         $this->serviceName = $this->helpers->console()->handleOverridesAndFallbacks(
-            $this->option('ecs-service'),
-            NetsellsFile::DOCKER_ECS_SERVICE
+            OverridesAndFallbacks::withConsole($this->option('ecs-service'))
+                ->envVar('ECS_SERVICE')
+                ->netsellsFile(NetsellsFile::DOCKER_ECS_SERVICE)
         );
 
         $this->clusterName = $this->helpers->console()->handleOverridesAndFallbacks(
-            $this->option('ecs-cluster'),
-            NetsellsFile::DOCKER_ECS_CLUSTER
+            OverridesAndFallbacks::withConsole($this->option('ecs-cluster'))
+                ->envVar('ECS_CLUSTER')
+                ->netsellsFile(NetsellsFile::DOCKER_ECS_CLUSTER)
         );
 
         $this->taskDefinitionName = $this->helpers->console()->handleOverridesAndFallbacks(
-            $this->option('ecs-task-definition'),
-            NetsellsFile::DOCKER_ECS_TASK_DEFINITION
+            OverridesAndFallbacks::withConsole($this->option('ecs-task-definition'))
+                ->envVar('ECS_TASK_DEFINITION')
+                ->netsellsFile(NetsellsFile::DOCKER_ECS_TASK_DEFINITION)
         );
 
         if (empty($this->serviceName) || empty($this->clusterName) || empty($this->taskDefinitionName)) {
@@ -235,9 +253,10 @@ class DeployEcsServiceUpdate extends Command
         }
 
         $configuredServices = $this->helpers->console()->handleOverridesAndFallbacks(
-            $this->option('service'),
-            NetsellsFile::DOCKER_SERVICES,
-            []
+            OverridesAndFallbacks::withConsole($this->option('service'))
+                ->envVar('SERVICE')
+                ->netsellsFile(NetsellsFile::DOCKER_SERVICES)
+                ->default([])
         );
 
         return collect($dockerComposeConfig['services'])

@@ -56,12 +56,6 @@ docker:
             cluster: traefik
             service: netsells-api
             task-definition: netsells-api
-
-            # If set, will spin up a migrate task to run the command during an update
-            migrate:
-                container: php
-                command: LARAVEL_DATABASE_MIGRATIONS # Using a constant
-                # command: ["php", "artisan", "migrate", "--force"] # List syntax, same as dockerfile - https://docs.docker.com/engine/reference/builder/#cmd
 ```
 
 ## Command Reference

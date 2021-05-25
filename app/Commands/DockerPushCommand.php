@@ -8,6 +8,7 @@ use App\Exceptions\ProcessFailed;
 use Symfony\Component\Process\Process;
 use LaravelZero\Framework\Commands\Command;
 use Symfony\Component\Console\Input\InputOption;
+use App\Helpers\DataObjects\OverridesAndFallbacks;
 
 class DockerPushCommand extends Command
 {
@@ -38,6 +39,7 @@ class DockerPushCommand extends Command
     {
         $this->setDefinition(array_merge([
             new InputOption('tag', null, InputOption::VALUE_OPTIONAL, 'The tag that should be built with the images. Defaults to the current commit SHA'),
+            new InputOption('tag-prefix', null, InputOption::VALUE_OPTIONAL, 'The tag prefix that should be built with the images. Defaults to null'),
             new InputOption('service', null, InputOption::VALUE_OPTIONAL | InputOption::VALUE_IS_ARRAY, 'The service that should be pushed. Not defining this will push all services'),
         ], $this->helpers->aws()->commonConsoleOptions()));
     }
@@ -61,11 +63,13 @@ class DockerPushCommand extends Command
             return 1;
         }
 
-        $tag = trim($this->option('tag') ?: $this->helpers->git()->currentSha());
+        $tag = $this->helpers->docker()->prefixedTag($this);
+
         $services = $this->helpers->console()->handleOverridesAndFallbacks(
-            $this->option('service'),
-            NetsellsFile::DOCKER_SERVICES,
-            []
+            OverridesAndFallbacks::withConsole($this->option('service'))
+                ->envVar('SERVICE')
+                ->netsellsFile(NetsellsFile::DOCKER_SERVICES)
+                ->default([])
         );
 
         $loginSuccessful = $this->helpers->aws()->ecs()->authenticateDocker($this);

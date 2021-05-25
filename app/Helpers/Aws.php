@@ -5,6 +5,7 @@ namespace App\Helpers;
 use App\Helpers\Aws\Ec2;
 use App\Helpers\Aws\Ecs;
 use App\Helpers\Aws\Ssm;
+use App\Helpers\DataObjects\OverridesAndFallbacks;
 use App\Helpers\Process;
 use LaravelZero\Framework\Commands\Command;
 use Symfony\Component\Console\Input\InputOption;
@@ -44,13 +45,23 @@ class Aws
 
     public function standardCliArguments(Command $command): array
     {
-        $awsRegion = $this->helpers->console()->handleOverridesAndFallbacks($command->option('aws-region'), NetsellsFile::DOCKER_AWS_REGION, Aws::DEFAULT_REGION);
+        $awsRegion = $this->helpers->console()->handleOverridesAndFallbacks(
+            OverridesAndFallbacks::withConsole($command->option('aws-region'))
+                ->envVar('AWS_REGION')
+                ->netsellsFile(NetsellsFile::DOCKER_AWS_REGION)
+                ->default(Aws::DEFAULT_REGION)
+        );
 
         $return = [
             "--region={$awsRegion}",
         ];
 
-        if ($awsProfile = $command->option('aws-profile')) {
+        $awsProfile = $this->helpers->console()->handleOverridesAndFallbacks(
+            OverridesAndFallbacks::withConsole($command->option('aws-profile'))
+                ->envVar('AWS_PROFILE')
+        );
+
+        if ($awsProfile) {
             $return[] = "--profile={$awsProfile}";
         }
 
