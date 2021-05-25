@@ -3,9 +3,9 @@
 namespace App\Helpers\Aws;
 
 use App\Helpers\Aws;
+use App\Helpers\Process;
 use App\Helpers\NetsellsFile;
 use App\Exceptions\ProcessFailed;
-use Symfony\Component\Process\Process;
 use LaravelZero\Framework\Commands\Command;
 
 class Ecs
@@ -64,6 +64,84 @@ class Ecs
         }
 
         return json_decode($processOutput, true);
+    }
+
+    public function listClusters(Command $command): ?array
+    {
+        try {
+            $processOutput = $this->aws->newProcess($command, [
+                'ecs', 'list-clusters',
+            ])
+            ->run();
+        } catch (ProcessFailed $e) {
+            $command->error("Unable to get clusters from AWS.");
+            return null;
+        }
+
+        return data_get(json_decode($processOutput, true), 'clusterArns');
+    }
+
+    public function listServices(Command $command, string $clusterName): ?array
+    {
+        try {
+            $processOutput = $this->aws->newProcess($command, [
+                'ecs', 'list-services', "--cluster", $clusterName,
+            ])
+            ->run();
+        } catch (ProcessFailed $e) {
+            $command->error("Unable to get services [{$clusterName}] from AWS.");
+            return null;
+        }
+
+        return data_get(json_decode($processOutput, true), 'serviceArns');
+    }
+
+    public function listTasks(Command $command, string $clusterName, string $serviceName): ?array
+    {
+        try {
+            $processOutput = $this->aws->newProcess($command, [
+                'ecs', 'list-tasks', "--cluster", $clusterName, "--service-name", $serviceName,
+            ])
+            ->run();
+        } catch (ProcessFailed $e) {
+            $command->error("Unable to get tasks [{$clusterName} - {$serviceName}] from AWS.");
+            return null;
+        }
+
+        return data_get(json_decode($processOutput, true), 'taskArns');
+    }
+
+    public function listContainers(Command $command, string $clusterName, string $taskId): ?array
+    {
+        try {
+            $processOutput = $this->aws->newProcess($command, [
+                'ecs', 'describe-tasks', "--cluster", $clusterName, '--task', $taskId,
+                '--query', 'tasks[0].containers[].name',
+            ])
+            ->run();
+        } catch (ProcessFailed $e) {
+            $command->error("Unable to get tasks [{$clusterName} - {$taskId}] from AWS.");
+            return null;
+        }
+
+        return json_decode($processOutput, true);
+    }
+
+    public function getTasks(Command $command, string $clusterName, array $taskArns): ?array
+    {
+        $commands = array_merge([
+            'ecs', 'describe-tasks', "--cluster", $clusterName, "--tasks",
+        ], $taskArns);
+
+        try {
+            $processOutput = $this->aws->newProcess($command, $commands)
+            ->run();
+        } catch (ProcessFailed $e) {
+            // $command->error("Unable to get tasks [{$taskArns}] from AWS.");
+            return null;
+        }
+
+        return data_get(json_decode($processOutput, true), 'tasks');
     }
 
     public function registerTaskDefinition(Command $command, string $taskDefinitionJson): ?array
@@ -125,5 +203,17 @@ class Ecs
         }
 
         return;
+    }
+
+    public function startCommandExecution(Command $command, string $cluster, string $taskId, string $containerName, string $shellCommand): Process
+    {
+        return $this->aws->newProcess($command, [
+            'ecs', 'execute-command',
+            '--cluster', $cluster,
+            '--task', $taskId,
+            '--container', $containerName,
+            '--command', $shellCommand,
+            '--interactive',
+        ]);
     }
 }
