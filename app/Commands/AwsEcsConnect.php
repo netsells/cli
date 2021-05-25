@@ -94,14 +94,20 @@ class AwsEcsConnect extends Command
             return 1;
         }
 
-        $command = $this->helpers->aws()->ecs()->startCommandExecution($this, $cluster, $task, $container, $shellCommand);
+        try {
+            $command = $this->helpers->aws()->ecs()->startCommandExecution($this, $cluster, $task, $container, $shellCommand);
 
-        $command->withTimeout(null)
-            ->withProcessModifications(function ($process) {
-                $process->setTty(Process::isTtySupported());
-                $process->setIdleTimeout(null);
-            })
-            ->run();
+            $command->withTimeout(null)
+                ->echoLineByLineOutput(false)
+                ->echoOnFailure(false)
+                ->withProcessModifications(function ($process) {
+                    $process->setTty(Process::isTtySupported());
+                    $process->setIdleTimeout(null);
+                })
+                ->run();
+        } catch (ProcessFailed $e) {
+            $this->error("The SSM Agent likely isn't setup correctly on the selected container.");
+        }
     }
 
     protected function sendReRunHelper($rebuildOptions): void
