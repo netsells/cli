@@ -4,6 +4,7 @@ namespace App\Commands;
 
 use App\Exceptions\ProcessFailed;
 use App\Helpers\Helpers;
+use App\Helpers\NetsellsFile;
 use Symfony\Component\Process\Process;
 use LaravelZero\Framework\Commands\Command;
 use Symfony\Component\Console\Input\InputOption;
@@ -86,7 +87,7 @@ class AwsEcsConnect extends Command
             return 1;
         }
 
-        $shellCommand = $this->option('command') ?: $this->askForCommand();
+        $shellCommand = $this->option('command') ?: $this->askForCommand($cluster, $service, $task, $container);
 
         if (!$shellCommand) {
             $this->error('No command provided.');
@@ -130,6 +131,23 @@ class AwsEcsConnect extends Command
             return;
         }
 
+        if ($cluster = $this->helpers->netsellsFile()->get(NetsellsFile::DOCKER_ECS_CLUSTER)) {
+            $clusters = array_map(function ($cluster) {
+                return $this->lastPartArn($cluster);
+            }, $clusters);
+
+            if (in_array($cluster, $clusters)) {
+                return $cluster;
+            }
+
+            $this->error("Unable to find cluster defined in the .netsells.yml file [{$cluster}]");
+        }
+
+        // No point asking if we only have 1
+        if (count($clusters) === 1) {
+            return $clusters[0];
+        }
+
         // Make the menu have nicer names
         $clusters = array_map(function ($service) {
             $parts = explode('/', $service);
@@ -153,6 +171,23 @@ class AwsEcsConnect extends Command
             return;
         }
 
+        if ($service = $this->helpers->netsellsFile()->get(NetsellsFile::DOCKER_ECS_SERVICE)) {
+            $services = array_map(function ($service) {
+                return $this->lastPartArn($service);
+            }, $services);
+
+            if (in_array($service, $services)) {
+                return $service;
+            }
+
+            $this->error("Unable to find service defined in the .netsells.yml file [{$service}] in the cluster [{$cluster}]");
+        }
+
+        // No point asking if we only have 1
+        if (count($services) === 1) {
+            return $services[0];
+        }
+
         // Make the menu have nicer names
         $serviceNames = array_map(function ($service) {
             $parts = explode('/', $service);
@@ -164,7 +199,7 @@ class AwsEcsConnect extends Command
 
         $services = array_combine($serviceNames, $serviceNames);
 
-        return $this->menu("Choose a service to connect to...", $services)->open();
+        return $this->menu("Choose a service to connect to [{$cluster}]...", $services)->open();
     }
 
     protected function askForTask($cluster, $service)
@@ -174,6 +209,11 @@ class AwsEcsConnect extends Command
         if (is_null($tasks)) {
             $this->error("Could not get tasks.");
             return;
+        }
+
+        // No point asking if we only have 1
+        if (count($tasks) === 1) {
+            return $tasks[0];
         }
 
         // Make the menu have nicer names
@@ -187,7 +227,7 @@ class AwsEcsConnect extends Command
 
         $tasks = array_combine($taskId, $taskId);
 
-        return $this->menu("Choose a task to connect to...", $tasks)->open();
+        return $this->menu("Choose a task to connect to... [{$cluster} > {$service}]", $tasks)->open();
     }
 
     protected function askForContainer($cluster, $service, $task)
@@ -199,13 +239,27 @@ class AwsEcsConnect extends Command
             return;
         }
 
+        // No point asking if we only have 1
+        if (count($containers) === 1) {
+            return $containers[0];
+        }
+
         $containers = array_combine($containers, $containers);
 
-        return $this->menu("Choose a container to connect to...", $containers)->open();
+        return $this->menu("Choose a container to connect to... [{$cluster} > {$service} > {$task}]", $containers)->open();
     }
 
-    protected function askForCommand()
+    protected function askForCommand($cluster, $service, $task, $container)
     {
-        return $this->ask("What command should be run on the container?", "/bin/bash");
+        $service = $this->lastPartArn($service);
+        $task = $this->lastPartArn($task);
+
+        return $this->ask("What command should be run on the container? [{$cluster} > {$service} > {$task} > {$container}]", "/bin/bash");
+    }
+
+    private function lastPartArn($arn): string
+    {
+        $parts = explode('/', $arn);
+        return end($parts);
     }
 }
