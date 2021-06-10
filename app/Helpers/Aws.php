@@ -5,7 +5,6 @@ namespace App\Helpers;
 use App\Helpers\Aws\Ec2;
 use App\Helpers\Aws\Ecs;
 use App\Helpers\Aws\Ssm;
-use App\Helpers\DataObjects\OverridesAndFallbacks;
 use App\Helpers\Process;
 use LaravelZero\Framework\Commands\Command;
 use Symfony\Component\Console\Input\InputOption;
@@ -45,21 +44,13 @@ class Aws
 
     public function standardCliArguments(Command $command): array
     {
-        $awsRegion = $this->helpers->console()->handleOverridesAndFallbacks(
-            OverridesAndFallbacks::withConsole($command->option('aws-region'))
-                ->envVar('AWS_REGION')
-                ->netsellsFile(NetsellsFile::DOCKER_AWS_REGION)
-                ->default(Aws::DEFAULT_REGION)
-        );
+        $awsRegion = $command->option('aws-region');
 
         $return = [
             "--region={$awsRegion}",
         ];
 
-        $awsProfile = $this->helpers->console()->handleOverridesAndFallbacks(
-            OverridesAndFallbacks::withConsole($command->option('aws-profile'))
-                ->envVar('AWS_PROFILE')
-        );
+        $awsProfile = $command->option('aws-profile');
 
         if ($awsProfile) {
             $return[] = "--profile={$awsProfile}";
@@ -71,8 +62,8 @@ class Aws
     public static function commonConsoleOptions(): array
     {
         return [
-            new InputOption('aws-region', null, InputOption::VALUE_OPTIONAL, 'Override the default AWS region'),
-            new InputOption('aws-account-id', null, InputOption::VALUE_OPTIONAL, 'Override the default AWS account ID'),
+            new InputOption('aws-region', null, InputOption::VALUE_OPTIONAL, 'Override the default AWS region', Aws::DEFAULT_REGION),
+            new InputOption('aws-account-id', null, InputOption::VALUE_OPTIONAL, 'Override the default AWS account ID', Aws::DEFAULT_ACCOUNT_ID),
             new InputOption('aws-profile', null, InputOption::VALUE_OPTIONAL, 'Override the AWS profile to use'),
         ];
     }

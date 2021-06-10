@@ -2,13 +2,11 @@
 
 namespace App\Commands;
 
+use App\Commands\Console\DockerOption;
 use App\Helpers\Helpers;
-use App\Helpers\NetsellsFile;
 use App\Exceptions\ProcessFailed;
-use Symfony\Component\Process\Process;
 use LaravelZero\Framework\Commands\Command;
 use Symfony\Component\Console\Input\InputOption;
-use App\Helpers\DataObjects\OverridesAndFallbacks;
 
 class DockerBuildCommand extends Command
 {
@@ -38,10 +36,10 @@ class DockerBuildCommand extends Command
     public function configure()
     {
         $this->setDefinition(array_merge([
-            new InputOption('tag', null, InputOption::VALUE_OPTIONAL, 'The tag that should be built with the images. Defaults to the current commit SHA'),
-            new InputOption('tag-prefix', null, InputOption::VALUE_OPTIONAL, 'The tag prefix that should be built with the images. Defaults to null'),
+            new DockerOption('tag', null, DockerOption::VALUE_OPTIONAL, 'The tag that should be built with the images. Defaults to the current commit SHA', $this->helpers->git()->currentSha()),
+            new DockerOption('tag-prefix', null, DockerOption::VALUE_OPTIONAL, 'The tag prefix that should be built with the images. Defaults to null'),
             new InputOption('environment', null, InputOption::VALUE_OPTIONAL, 'The destination environment for the images'),
-            new InputOption('service', null, InputOption::VALUE_OPTIONAL | InputOption::VALUE_IS_ARRAY, 'The service that should be built. Not defining this will push all services'),
+            new DockerOption('service', null, DockerOption::VALUE_OPTIONAL | DockerOption::VALUE_IS_ARRAY, 'The service that should be built. Not defining this will push all services', []),
         ], $this->helpers->aws()->commonConsoleOptions()));
     }
 
@@ -66,12 +64,7 @@ class DockerBuildCommand extends Command
 
         $tag = $this->helpers->docker()->prefixedTag($this);
 
-        $services = $this->helpers->console()->handleOverridesAndFallbacks(
-            OverridesAndFallbacks::withConsole($this->option('service'))
-                ->envVar('SERVICE')
-                ->netsellsFile(NetsellsFile::DOCKER_SERVICES)
-                ->default([])
-        );
+        $services = $this->option('service');
 
         $loginSuccessful = $this->helpers->aws()->ecs()->authenticateDocker($this);
 

@@ -5,7 +5,6 @@ namespace App\Helpers;
 use Symfony\Component\Yaml\Yaml;
 use App\Exceptions\ProcessFailed;
 use LaravelZero\Framework\Commands\Command;
-use App\Helpers\DataObjects\OverridesAndFallbacks;
 use Symfony\Component\Yaml\Exception\ParseException;
 
 class Docker
@@ -64,15 +63,12 @@ class Docker
         ];
 
         if (
-            !$this->helpers->console()->handleOverridesAndFallbacks(
-                OverridesAndFallbacks::withConsole($command->option('skip-additional-tags'))
-                    ->envVar('SKIP_ADDITIONAL_TAGS')
-            )
+            !$command->option('skip-additional-tags')
         ) {
             // Not skipping, let's add latest and the env
             $tags[] = 'latest';
 
-            if ($environment = $this->helpers->console()->handleOverridesAndFallbacks(OverridesAndFallbacks::withConsole($command->option('environment'))->envVar('ENVIRONMENT'))){
+            if ($environment = $command->option('environment')) {
                 $tags[] = $environment;
             }
         }
@@ -121,17 +117,13 @@ class Docker
 
     public function prefixedTag(Command $command): string
     {
-        $tag = trim($this->helpers->console()->handleOverridesAndFallbacks(
-            OverridesAndFallbacks::withConsole($command->option('tag'))
-                ->envVar('TAG')
-                ->default($this->helpers->git()->currentSha())
-        ));
+        $tag = trim($command->option('tag'));
 
-        if ($tagPrefix = $this->helpers->console()->handleOverridesAndFallbacks(OverridesAndFallbacks::withConsole($command->option('tag-prefix'))->envVar('TAG_PREFIX'))) {
+        if ($tagPrefix = $command->option('tag-prefix')) {
             return trim($tagPrefix) . $tag;
         }
 
-        if ($tagPrefix = $this->helpers->console()->handleOverridesAndFallbacks(OverridesAndFallbacks::withConsole($command->option('environment'))->envVar('ENVIRONMENT'))) {
+        if ($tagPrefix = $command->option('environment')) {
             return trim($tagPrefix) . '-' . $tag;
         }
 

@@ -2,14 +2,12 @@
 
 namespace App\Commands;
 
-use App\Helpers\Aws;
+use App\Commands\Console\DockerOption;
 use App\Helpers\Helpers;
-use App\Helpers\NetsellsFile;
 use Symfony\Component\Yaml\Yaml;
 use App\Exceptions\ProcessFailed;
+use App\Commands\Console\InputOption;
 use LaravelZero\Framework\Commands\Command;
-use Symfony\Component\Console\Input\InputOption;
-use App\Helpers\DataObjects\OverridesAndFallbacks;
 use Symfony\Component\Yaml\Exception\ParseException;
 
 class DeployEcsServiceUpdate extends Command
@@ -44,14 +42,14 @@ class DeployEcsServiceUpdate extends Command
     public function configure()
     {
         $this->setDefinition(array_merge([
-            new InputOption('tag', null, InputOption::VALUE_OPTIONAL, 'The tag that should be built with the images. Defaults to the current commit SHA'),
-            new InputOption('tag-prefix', null, InputOption::VALUE_OPTIONAL, 'The tag prefix that should be built with the images. Defaults to null'),
-            new InputOption('ecs-service', null, InputOption::VALUE_OPTIONAL, 'The ECS service name'),
-            new InputOption('ecs-cluster', null, InputOption::VALUE_OPTIONAL, 'The ECS cluster name'),
-            new InputOption('ecs-task-definition', null, InputOption::VALUE_OPTIONAL, 'The ECS task definition name'),
-            new InputOption('migrate-container', null, InputOption::VALUE_OPTIONAL, 'The container to run the migration on'),
-            new InputOption('migrate-command', null, InputOption::VALUE_OPTIONAL, 'The migration command to run'),
-            new InputOption('service', null, InputOption::VALUE_OPTIONAL | InputOption::VALUE_IS_ARRAY, 'The service that should be deployed. Not defining this will deploy all services in .netsells.yml'),
+            new DockerOption('tag', null, DockerOption::VALUE_OPTIONAL, 'The tag that should be built with the images. Defaults to the current commit SHA', $this->helpers->git()->currentSha()),
+            new DockerOption('tag-prefix', null, DockerOption::VALUE_OPTIONAL, 'The tag prefix that should be built with the images. Defaults to null'),
+            new DockerOption('ecs-service', null, DockerOption::VALUE_OPTIONAL, 'The ECS service name'),
+            new DockerOption('ecs-cluster', null, DockerOption::VALUE_OPTIONAL, 'The ECS cluster name'),
+            new DockerOption('ecs-task-definition', null, DockerOption::VALUE_OPTIONAL, 'The ECS task definition name'),
+            new DockerOption('migrate-container', null, DockerOption::VALUE_OPTIONAL, 'The container to run the migration on'),
+            new DockerOption('migrate-command', null, DockerOption::VALUE_OPTIONAL, 'The migration command to run'),
+            new DockerOption('service', null, DockerOption::VALUE_OPTIONAL | DockerOption::VALUE_IS_ARRAY, 'The service that should be deployed. Not defining this will deploy all services in .netsells.yml', []),
             new InputOption('environment', null, InputOption::VALUE_OPTIONAL, 'The destination environment for the images'),
         ], $this->helpers->aws()->commonConsoleOptions()));
     }
@@ -105,16 +103,8 @@ class DeployEcsServiceUpdate extends Command
         $this->helpers->aws()->ecs()->updateService($this, $this->clusterName, $this->serviceName, $newTaskDefinitionString);
         $this->line("Service updated to task definition {$newTaskDefinitionString}");
 
-        $migrateCommand = $this->helpers->console()->handleOverridesAndFallbacks(
-            OverridesAndFallbacks::withConsole($this->option('migrate-command'))
-                ->envVar('MIGRATE_COMMAND')
-                ->netsellsFile(NetsellsFile::DOCKER_ECS_MIGRATE_COMMAND)
-        );
-        $migrateContainer = $this->helpers->console()->handleOverridesAndFallbacks(
-            OverridesAndFallbacks::withConsole($this->option('migrate-container'))
-                ->envVar('MIGRATE_CONTAINER')
-                ->netsellsFile(NetsellsFile::DOCKER_ECS_MIGRATE_CONTAINER)
-        );
+        $migrateCommand = $this->option('migrate-command');
+        $migrateContainer = $this->option('migrate-container');
 
         if ($migrateCommand && $migrateContainer) {
             $this->error('The migrate option will be deprecated in the next major version.');
@@ -201,34 +191,15 @@ class DeployEcsServiceUpdate extends Command
 
     protected function generateDeploymentUrl(): string
     {
-        $awsRegion = $this->helpers->console()->handleOverridesAndFallbacks(
-            OverridesAndFallbacks::withConsole($this->option('aws-region'))
-                ->envVar('AWS_REGION')
-                ->netsellsFile(NetsellsFile::DOCKER_AWS_REGION)
-                ->default(Aws::DEFAULT_REGION)
-        );
+        $awsRegion = $this->option('aws-region');
         return "https://{$awsRegion}.console.aws.amazon.com/ecs/home#/clusters/{$this->clusterName}/services/{$this->serviceName}/deployments";
     }
 
     protected function determineRequiredOptions(): bool
     {
-        $this->serviceName = $this->helpers->console()->handleOverridesAndFallbacks(
-            OverridesAndFallbacks::withConsole($this->option('ecs-service'))
-                ->envVar('ECS_SERVICE')
-                ->netsellsFile(NetsellsFile::DOCKER_ECS_SERVICE)
-        );
-
-        $this->clusterName = $this->helpers->console()->handleOverridesAndFallbacks(
-            OverridesAndFallbacks::withConsole($this->option('ecs-cluster'))
-                ->envVar('ECS_CLUSTER')
-                ->netsellsFile(NetsellsFile::DOCKER_ECS_CLUSTER)
-        );
-
-        $this->taskDefinitionName = $this->helpers->console()->handleOverridesAndFallbacks(
-            OverridesAndFallbacks::withConsole($this->option('ecs-task-definition'))
-                ->envVar('ECS_TASK_DEFINITION')
-                ->netsellsFile(NetsellsFile::DOCKER_ECS_TASK_DEFINITION)
-        );
+        $this->serviceName = $this->option('ecs-service');
+        $this->clusterName = $this->option('ecs-cluster');
+        $this->taskDefinitionName = $this->option('ecs-task-definition');
 
         if (empty($this->serviceName) || empty($this->clusterName) || empty($this->taskDefinitionName)) {
             $this->comment("The deploy ECS service update command requires you specify service, cluster and task definition in either the .netsells.yml file or via arguments.");
@@ -254,12 +225,7 @@ class DeployEcsServiceUpdate extends Command
             return [];
         }
 
-        $configuredServices = $this->helpers->console()->handleOverridesAndFallbacks(
-            OverridesAndFallbacks::withConsole($this->option('service'))
-                ->envVar('SERVICE')
-                ->netsellsFile(NetsellsFile::DOCKER_SERVICES)
-                ->default([])
-        );
+        $configuredServices = $this->option('service');
 
         return collect($dockerComposeConfig['services'])
             ->transform(function ($service, $serviceName) use ($configuredServices) {
