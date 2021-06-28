@@ -7,26 +7,20 @@ use App\Exceptions\ProcessFailed;
 use LaravelZero\Framework\Commands\Command;
 use Symfony\Component\Yaml\Exception\ParseException;
 
-class Docker
+class Docker extends BaseHelper
 {
-
     /** @var Helpers $helpers */
-    public $helpers;
+    private $helpers;
 
-    public function __construct(Helpers $helpers)
+    public function __construct(Command $command, Helpers $helpers)
     {
+        parent::__construct($command);
         $this->helpers = $helpers;
     }
 
-    public function tagImages(Command $command, string $service = null, string $sourceTag, array $newTags): bool
+    public function tagImages(?string $service, string $sourceTag, array $newTags): bool
     {
-        if ($service) {
-            $services = [
-                $this->getImageUrlForService($command, $service),
-            ];
-        } else {
-            $services = $this->getImageUrlsForAllServices($command);
-        }
+        $services = $this->getImageUrlsForServices($this->command, $service ? [$service] : []);
 
         foreach ($services as $serviceImage) {
             foreach ($newTags as $newTag) {
@@ -44,9 +38,9 @@ class Docker
                     ->echoLineByLineOutput(true)
                     ->run();
 
-                    $command->comment("Tagged " . $serviceImage . $newTag);
+                    $this->command->comment("Tagged " . $serviceImage . $newTag);
                 } catch (ProcessFailed $e) {
-                    $command->error("Unable to tag {$serviceImage}{$sourceTag} as {$serviceImage}{$newTag}");
+                    $this->command->error("Unable to tag {$serviceImage}{$sourceTag} as {$serviceImage}{$newTag}");
                     return false;
                 }
             }
@@ -55,20 +49,20 @@ class Docker
         return true;
     }
 
-    public function determineTags(Command $command): array
+    public function determineTags(): array
     {
         // We'll start with the standard tag
         $tags = [
-            $this->prefixedTag($command),
+            $this->prefixedTag($this->command),
         ];
 
         if (
-            !$command->option('skip-additional-tags')
+            !$this->command->option('skip-additional-tags')
         ) {
             // Not skipping, let's add latest and the env
             $tags[] = 'latest';
 
-            if ($environment = $command->option('environment')) {
+            if ($environment = $this->command->option('environment')) {
                 $tags[] = $environment;
             }
         }
@@ -76,61 +70,39 @@ class Docker
         return $tags;
     }
 
-    public function getImageUrlsForAllServices(Command $command): ?array
+    public function getImageUrlsForServices(array $services = []): array
     {
-        $config = $this->fetchComposeConfig($command);
-
+        $config = $this->fetchComposeConfig($this->command);
         if (!$config) {
-            return null;
+            return [];
         }
 
         return collect($config['services'])
-            ->transform(function ($serviceData, $serviceName) {
-                return $serviceName;
+            ->filter(function (array $serviceData, string $serviceName) use ($services) {
+                return isset($serviceData['image']) && (empty($services) || in_array($serviceName, $services));
             })
-            ->filter()
+            ->map(fn (array $serviceData) => $serviceData['image'])
+            ->unique()
+            ->values()
             ->all();
     }
 
-    public function getImageUrlForService(Command $command, $service): ?string
+    public function prefixedTag(): string
     {
-        $config = $this->fetchComposeConfig($command);
+        $tag = trim($this->command->option('tag'));
 
-        if (!$config) {
-            return null;
-        }
-
-        return collect($config['services'])
-            ->filter(function ($serviceData, $serviceName) use ($service) {
-                return ($serviceName == $service);
-            })
-            ->transform(function ($serviceData, $serviceName) {
-                // We're only updating services that have an image attached
-                if (!isset($serviceData['image'])) {
-                    return null;
-                }
-
-                return $serviceData['image'];
-            })
-            ->first();
-    }
-
-    public function prefixedTag(Command $command): string
-    {
-        $tag = trim($command->option('tag'));
-
-        if ($tagPrefix = $command->option('tag-prefix')) {
+        if ($tagPrefix = $this->command->option('tag-prefix')) {
             return trim($tagPrefix) . $tag;
         }
 
-        if ($tagPrefix = $command->option('environment')) {
+        if ($tagPrefix = $this->command->option('environment')) {
             return trim($tagPrefix) . '-' . $tag;
         }
 
         return $tag;
     }
 
-    public function fetchComposeConfig(Command $command): ?array
+    public function fetchComposeConfig(): ?array
     {
         try {
             $dockerComposeYml = $this->helpers->process()->withCommand([
@@ -142,19 +114,19 @@ class Docker
             ])
             ->run();
         } catch (ProcessFailed $e) {
-            $command->error("Unable to get generated config from docker-compose.");
+            $this->command->error("Unable to get generated config from docker-compose.");
             return null;
         }
 
         if (!$dockerComposeYml) {
-            $command->error("Unable to get generated config from docker-compose.");
+            $this->command->error("Unable to get generated config from docker-compose.");
             return null;
         }
 
         try {
             $dockerComposeConfig = Yaml::parse($dockerComposeYml);
         } catch (ParseException $exception) {
-            $command->error("Failed to parse yml from docker-compose output.");
+            $this->command->error("Failed to parse yml from docker-compose output.");
             return null;
         }
 

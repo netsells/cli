@@ -11,7 +11,7 @@ class Checks
     public const REPORT_FILES = 'files';
     public const REPORT_BINARIES = 'binaries';
 
-    protected function checkAndReportMissing(Command $command, $type, $requiredItems): bool
+    protected function checkAndReportMissing($type, $requiredItems): bool
     {
         $missingCheckMethod = 'missing' . ucfirst($type);
 
@@ -22,20 +22,20 @@ class Checks
         $missingItems = $this->$missingCheckMethod($requiredItems);
 
         if (count($missingItems)  > 0) {
-            $this->reportMissing($command, $type, $missingItems);
+            $this->reportMissing($this->command, $type, $missingItems);
         }
 
         return count($missingItems) > 0;
     }
 
-    public function checkAndReportMissingFiles(Command $command, $requiredItems): bool
+    public function checkAndReportMissingFiles($requiredItems): bool
     {
-        return $this->checkAndReportMissing($command, 'files', $requiredItems);
+        return $this->checkAndReportMissing($this->command, 'files', $requiredItems);
     }
 
-    public function checkAndReportMissingBinaries(Command $command, $requiredItems): bool
+    public function checkAndReportMissingBinaries($requiredItems): bool
     {
-        return $this->checkAndReportMissing($command, 'binaries', $requiredItems);
+        return $this->checkAndReportMissing($this->command, 'binaries', $requiredItems);
     }
 
     public function missingFiles(array $requiredFiles): array
@@ -59,8 +59,8 @@ class Checks
         return array_filter($items, $isMissingCheck);
     }
 
-    public function reportMissing(Command $command, $type, $items): void
+    public function reportMissing($type, $items): void
     {
-        (new CheckReporter($command))->reportMissing($type, $items);
+        (new CheckReporter($this->command))->reportMissing($type, $items);
     }
 }

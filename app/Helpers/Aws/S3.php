@@ -20,9 +20,9 @@ class S3
         $this->aws = $aws;
     }
 
-    public function getFile(Command $command, string $bucketName, string $path): Result
+    public function getFile(string $bucketName, string $path): Result
     {
-        $client = new S3Client($this->aws->standardSdkArguments($command));
+        $client = new S3Client($this->aws->standardSdkArguments());
 
         $response = $client->getObject([
             'Bucket' => $bucketName,
@@ -32,9 +32,9 @@ class S3
         return $response;
     }
 
-    public function getJsonFile(Command $command, string $bucketName, string $path): array
+    public function getJsonFile(string $bucketName, string $path): array
     {
-        $response = $this->getFile($command, $bucketName, $path);
+        $response = $this->getFile($bucketName, $path);
 
         return json_decode($response->get('Body'), true);
     }

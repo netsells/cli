@@ -8,7 +8,7 @@ use Symfony\Component\Console\Input\InputOption as BaseInputOption;
 
 class InputOption extends BaseInputOption
 {
-    protected $netsellsFilePrefix;
+    protected $netsellsFilePrefix = '';
 
     public function getDefault()
     {

@@ -2,10 +2,7 @@
 
 namespace App\Commands;
 
-use App\Helpers\Helpers;
-use LaravelZero\Framework\Commands\Command;
-
-class AwsEc2List extends Command
+class AwsEc2List extends BaseCommand
 {
     /**
      * The signature of the command.
@@ -21,15 +18,6 @@ class AwsEc2List extends Command
      */
     protected $description = 'List the instances available';
 
-    /** @var Helpers $helpers */
-    protected $helpers;
-
-    public function __construct(Helpers $helpers)
-    {
-        $this->helpers = $helpers;
-        parent::__construct();
-    }
-
     public function configure()
     {
         $this->setDefinition($this->helpers->aws()->commonConsoleOptions());
@@ -44,14 +32,13 @@ class AwsEc2List extends Command
     {
         $requiredBinaries = ['aws'];
 
-        if ($this->helpers->checks()->checkAndReportMissingBinaries($this, $requiredBinaries)) {
+        if ($this->helpers->checks()->checkAndReportMissingBinaries($requiredBinaries)) {
             return 1;
         }
 
         $columns = ['InstanceId', 'Name', 'PrivateIpAddress', 'InstanceType'];
 
         $instances = $this->helpers->aws()->ec2()->listInstances(
-            $this,
             "Reservations[*].Instances[*].{InstanceId:InstanceId,Name:Tags[?Key=='Name']|[0].Value,PrivateIpAddress:PrivateIpAddress,InstanceType:InstanceType}"
         );
 

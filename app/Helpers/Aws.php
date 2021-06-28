@@ -11,17 +11,23 @@ use App\Helpers\Process;
 use LaravelZero\Framework\Commands\Command;
 use Symfony\Component\Console\Input\InputOption;
 
-class Aws
+class Aws extends BaseHelper
 {
     public const DEFAULT_REGION = 'eu-west-2';
     public const DEFAULT_ACCOUNT_ID = '422860057079';
 
     /** @var Helpers $helpers */
-    public $helpers;
+    private $helpers;
 
-    public function __construct(Helpers $helpers)
+    public function __construct(Command $command, Helpers $helpers)
     {
+        parent::__construct($command);
         $this->helpers = $helpers;
+    }
+
+    public function getCommand(): ?Command
+    {
+        return $this->command;
     }
 
     public function ecs(): Ecs
@@ -49,29 +55,29 @@ class Aws
         return new S3($this);
     }
 
-    public function newProcess(Command $command, array $args = []): Process
+    public function newProcess(array $args = []): Process
     {
-        return $this->helpers->process()->withCommand(array_merge(['aws'], $args, $this->standardCliArguments($command)));
+        return $this->helpers->process()->withCommand(array_merge(['aws'], $args, $this->standardCliArguments()));
     }
 
-    public function standardSdkArguments(Command $command): array
+    public function standardSdkArguments(): array
     {
         return [
-            'region' => $command->option('aws-region'),
-            'profile' => $command->option('aws-profile'),
+            'region' => $this->command->option('aws-region'),
+            'profile' => $this->command->option('aws-profile'),
             'version' => 'latest',
         ];
     }
 
-    public function standardCliArguments(Command $command): array
+    public function standardCliArguments(): array
     {
-        $awsRegion = $command->option('aws-region');
+        $awsRegion = $this->command->option('aws-region');
 
         $return = [
             "--region={$awsRegion}",
         ];
 
-        $awsProfile = $command->option('aws-profile');
+        $awsProfile = $this->command->option('aws-profile');
 
         if ($awsProfile) {
             $return[] = "--profile={$awsProfile}";

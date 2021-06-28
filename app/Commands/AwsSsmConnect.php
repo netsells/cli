@@ -3,13 +3,11 @@
 namespace App\Commands;
 
 use App\Exceptions\ProcessFailed;
-use App\Helpers\Helpers;
 use Symfony\Component\Process\Process;
-use LaravelZero\Framework\Commands\Command;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
-class AwsSsmConnect extends Command
+class AwsSsmConnect extends BaseCommand
 {
     /**
      * The signature of the command.
@@ -26,15 +24,6 @@ class AwsSsmConnect extends Command
     protected $description = 'Connect to an server via SSH (Use --tunnel to establish an SSH tunnel)';
 
     protected $tempKeyName = 'netsells-cli-ssm-ssh-tmp';
-
-    /** @var Helpers $helpers */
-    protected $helpers;
-
-    public function __construct(Helpers $helpers)
-    {
-        $this->helpers = $helpers;
-        parent::__construct();
-    }
 
     public function configure()
     {
@@ -57,7 +46,7 @@ class AwsSsmConnect extends Command
     {
         $requiredBinaries = ['aws', 'ssh'];
 
-        if ($this->helpers->checks()->checkAndReportMissingBinaries($this, $requiredBinaries)) {
+        if ($this->helpers->checks()->checkAndReportMissingBinaries($requiredBinaries)) {
             return 1;
         }
 
@@ -86,12 +75,12 @@ class AwsSsmConnect extends Command
         $command = $this->generateRemoteCommand($username, $key);
 
         $this->info("Sending a temporary SSH key to the server...", OutputInterface::VERBOSITY_VERBOSE);
-        if (!$this->helpers->aws()->ssm()->sendRemoteCommand($this, $instanceId, $command)) {
+        if (!$this->helpers->aws()->ssm()->sendRemoteCommand($instanceId, $command)) {
             $this->error('Failed to send SSH key to server');
             return 1;
         }
 
-        $sessionCommand = $this->helpers->aws()->ssm()->startSessionProcess($this, $instanceId);
+        $sessionCommand = $this->helpers->aws()->ssm()->startSessionProcess($instanceId);
         $sessionCommandString = implode(' ', $sessionCommand->getArguments());
 
         $options = [
@@ -192,7 +181,6 @@ class AwsSsmConnect extends Command
     protected function askForInstanceId()
     {
         $instances = $this->helpers->aws()->ec2()->listInstances(
-            $this,
             "Reservations[*].Instances[*].{InstanceId:InstanceId,Name:Tags[?Key=='Name']|[0].Value,PrivateIpAddress:PrivateIpAddress,InstanceType:InstanceType}"
         )->flatten(1);
 
@@ -211,7 +199,7 @@ class AwsSsmConnect extends Command
     {
         $requiredBinaries = ['aws', 'ssh', 'ssh-keygen'];
 
-        if ($this->helpers->checks()->checkAndReportMissingBinaries($this, $requiredBinaries)) {
+        if ($this->helpers->checks()->checkAndReportMissingBinaries($requiredBinaries)) {
             return 1;
         }
 

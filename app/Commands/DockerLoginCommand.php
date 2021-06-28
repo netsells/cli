@@ -2,14 +2,7 @@
 
 namespace App\Commands;
 
-use App\Helpers\Helpers;
-use App\Helpers\NetsellsFile;
-use App\Exceptions\ProcessFailed;
-use Symfony\Component\Process\Process;
-use LaravelZero\Framework\Commands\Command;
-use Symfony\Component\Console\Input\InputOption;
-
-class DockerLoginCommand extends Command
+class DockerLoginCommand extends BaseCommand
 {
     /**
      * The signature of the command.
@@ -25,15 +18,6 @@ class DockerLoginCommand extends Command
      */
     protected $description = 'Logs into docker via the AWS account';
 
-    /** @var Helpers $helpers */
-    protected $helpers;
-
-    public function __construct(Helpers $helpers)
-    {
-        $this->helpers = $helpers;
-        parent::__construct();
-    }
-
     public function configure()
     {
         $this->setDefinition($this->helpers->aws()->commonConsoleOptions());
@@ -48,11 +32,11 @@ class DockerLoginCommand extends Command
     {
         $requiredBinaries = ['docker', 'aws'];
 
-        if ($this->helpers->checks()->checkAndReportMissingBinaries($this, $requiredBinaries)) {
+        if ($this->helpers->checks()->checkAndReportMissingBinaries($requiredBinaries)) {
             return 1;
         }
 
-        $loginSuccessful = $this->helpers->aws()->ecs()->authenticateDocker($this);
+        $loginSuccessful = $this->helpers->aws()->ecs()->authenticateDocker();
 
         if (!$loginSuccessful) {
             return 1;

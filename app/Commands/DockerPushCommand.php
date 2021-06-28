@@ -2,13 +2,11 @@
 
 namespace App\Commands;
 
-use App\Helpers\Helpers;
 use App\Exceptions\ProcessFailed;
 use App\Commands\Console\DockerOption;
-use LaravelZero\Framework\Commands\Command;
 use Symfony\Component\Console\Input\InputOption;
 
-class DockerPushCommand extends Command
+class DockerPushCommand extends BaseCommand
 {
     /**
      * The signature of the command.
@@ -23,15 +21,6 @@ class DockerPushCommand extends Command
      * @var string
      */
     protected $description = 'Pushes docker-compose created images to ECR';
-
-    /** @var Helpers $helpers */
-    protected $helpers;
-
-    public function __construct(Helpers $helpers)
-    {
-        $this->helpers = $helpers;
-        parent::__construct();
-    }
 
     public function configure()
     {
@@ -53,25 +42,25 @@ class DockerPushCommand extends Command
     {
         $requiredBinaries = ['docker', 'docker-compose', 'aws'];
 
-        if ($this->helpers->checks()->checkAndReportMissingBinaries($this, $requiredBinaries)) {
+        if ($this->helpers->checks()->checkAndReportMissingBinaries($requiredBinaries)) {
             return 1;
         }
 
         $requiredFiles = ['docker-compose.yml', 'docker-compose.prod.yml'];
 
-        if ($this->helpers->checks()->checkAndReportMissingFiles($this, $requiredFiles)) {
+        if ($this->helpers->checks()->checkAndReportMissingFiles($requiredFiles)) {
             return 1;
         }
 
         $services = $this->option('service');
 
-        $loginSuccessful = $this->helpers->aws()->ecs()->authenticateDocker($this);
+        $loginSuccessful = $this->helpers->aws()->ecs()->authenticateDocker();
 
         if (!$loginSuccessful) {
             return 1;
         }
 
-        $tags = $this->helpers->docker()->determineTags($this);
+        $tags = $this->helpers->docker()->determineTags();
 
         if (count($services) == 0) {
             // Generic full file build as we have no services
@@ -98,8 +87,8 @@ class DockerPushCommand extends Command
     protected function callPush(array $tags, string $service = null): bool
     {
         // We need to make the new tags first
-        $sourceTag = $this->helpers->docker()->prefixedTag($this);
-        if (!$this->helpers->docker()->tagImages($this, $service, $sourceTag, $tags)) {
+        $sourceTag = $this->helpers->docker()->prefixedTag();
+        if (!$this->helpers->docker()->tagImages($service, $sourceTag, $tags)) {
             return 1;
         }
 

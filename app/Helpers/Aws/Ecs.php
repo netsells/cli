@@ -17,18 +17,18 @@ class Ecs
         $this->aws = $aws;
     }
 
-    public function authenticateDocker(Command $command): bool
+    public function authenticateDocker(): bool
     {
-        $awsAccountId = $command->option('aws-account-id');
-        $awsRegion = $command->option('aws-region');
+        $awsAccountId = $this->aws->getCommand()->option('aws-account-id');
+        $awsRegion = $this->aws->getCommand()->option('aws-region');
 
         try {
-            $processOutput = $this->aws->newProcess($command, [
+            $processOutput = $this->aws->newProcess([
                 'ecr', 'get-login-password',
             ])
             ->run();
         } catch (ProcessFailed $e) {
-            $command->error("Unable to get docker password from AWS.");
+            $this->aws->getCommand()->error("Unable to get docker password from AWS.");
             return false;
         }
 
@@ -43,108 +43,108 @@ class Ecs
             ])
             ->run();
         } catch (ProcessFailed $e) {
-            $command->error("Unable to login to docker.");
+            $this->aws->getCommand()->error("Unable to login to docker.");
             return false;
         }
 
         return true;
     }
 
-    public function getTaskDefinition(Command $command, $name): ?array
+    public function getTaskDefinition($name): ?array
     {
         try {
-            $processOutput = $this->aws->newProcess($command, [
+            $processOutput = $this->aws->newProcess([
                 'ecs', 'describe-task-definition', "--task-definition={$name}",
             ])
             ->run();
         } catch (ProcessFailed $e) {
-            $command->error("Unable to get task definition [{$name}] from AWS.");
+            $this->aws->getCommand()->error("Unable to get task definition [{$name}] from AWS.");
             return null;
         }
 
         return json_decode($processOutput, true);
     }
 
-    public function listClusters(Command $command): ?array
+    public function listClusters(): ?array
     {
         try {
-            $processOutput = $this->aws->newProcess($command, [
+            $processOutput = $this->aws->newProcess([
                 'ecs', 'list-clusters', '--query', 'clusterArns',
             ])
             ->run();
         } catch (ProcessFailed $e) {
-            $command->error("Unable to get clusters from AWS.");
+            $this->aws->getCommand()->error("Unable to get clusters from AWS.");
             return null;
         }
 
         return json_decode($processOutput, true);
     }
 
-    public function listServices(Command $command, string $clusterName): ?array
+    public function listServices(string $clusterName): ?array
     {
         try {
-            $processOutput = $this->aws->newProcess($command, [
+            $processOutput = $this->aws->newProcess([
                 'ecs', 'list-services', '--cluster', $clusterName, '--query', 'serviceArns',
             ])
             ->run();
         } catch (ProcessFailed $e) {
-            $command->error("Unable to get services [{$clusterName}] from AWS.");
+            $this->aws->getCommand()->error("Unable to get services [{$clusterName}] from AWS.");
             return null;
         }
 
         return json_decode($processOutput, true);
     }
 
-    public function listTasks(Command $command, string $clusterName, string $serviceName): ?array
+    public function listTasks(string $clusterName, string $serviceName): ?array
     {
         try {
-            $processOutput = $this->aws->newProcess($command, [
+            $processOutput = $this->aws->newProcess([
                 'ecs', 'list-tasks', '--cluster', $clusterName, '--service-name', $serviceName, '--query', 'taskArns',
             ])
             ->run();
         } catch (ProcessFailed $e) {
-            $command->error("Unable to get tasks [{$clusterName} - {$serviceName}] from AWS.");
+            $this->aws->getCommand()->error("Unable to get tasks [{$clusterName} - {$serviceName}] from AWS.");
             return null;
         }
 
         return json_decode($processOutput, true);
     }
 
-    public function listContainers(Command $command, string $clusterName, string $taskId): ?array
+    public function listContainers(string $clusterName, string $taskId): ?array
     {
         try {
-            $processOutput = $this->aws->newProcess($command, [
+            $processOutput = $this->aws->newProcess([
                 'ecs', 'describe-tasks', '--cluster', $clusterName, '--task', $taskId,
                 '--query', 'tasks[0].containers[].name',
             ])
             ->run();
         } catch (ProcessFailed $e) {
-            $command->error("Unable to get tasks [{$clusterName} - {$taskId}] from AWS.");
+            $this->aws->getCommand()->error("Unable to get tasks [{$clusterName} - {$taskId}] from AWS.");
             return null;
         }
 
         return json_decode($processOutput, true);
     }
 
-    public function registerTaskDefinition(Command $command, string $taskDefinitionJson): ?array
+    public function registerTaskDefinition(string $taskDefinitionJson): ?array
     {
         try {
-            $processOutput = $this->aws->newProcess($command, [
+            $processOutput = $this->aws->newProcess([
                 'ecs', 'register-task-definition', '--cli-input-json', $taskDefinitionJson,
             ])
             ->run();
         } catch (ProcessFailed $e) {
-            $command->error("Unable to register task definition in AWS.");
+            $this->aws->getCommand()->error("Unable to register task definition in AWS.");
             return null;
         }
 
         return json_decode($processOutput, true);
     }
 
-    public function updateService(Command $command, string $clusterName, string $serviceName, string $taskDefinition): ?array
+    public function updateService(string $clusterName, string $serviceName, string $taskDefinition): ?array
     {
         try {
-            $processOutput = $this->aws->newProcess($command, [
+            $processOutput = $this->aws->newProcess([
                 'ecs', 'update-service',
                 "--cluster={$clusterName}",
                 "--service={$serviceName}",
@@ -152,14 +152,14 @@ class Ecs
             ])
             ->run();
         } catch (ProcessFailed $e) {
-            $command->error("Unable to update service in AWS.");
+            $this->aws->getCommand()->error("Unable to update service in AWS.");
             return null;
         }
 
         return json_decode($processOutput, true);
     }
 
-    public function runTaskWithCommand(Command $command, string $clusterName, string $taskDefinition, array $migrateCommand, string $container): void
+    public function runTaskWithCommand(string $clusterName, string $taskDefinition, array $migrateCommand, string $container): void
     {
         $overrides = json_encode([
             'containerOverrides' => [
@@ -172,7 +172,7 @@ class Ecs
 
 
         try {
-            $this->aws->newProcess($command, [
+            $this->aws->newProcess([
                 'ecs', 'run-task',
                 "--cluster={$clusterName}",
                 "--overrides={$overrides}",
@@ -180,16 +180,16 @@ class Ecs
             ])
             ->run();
         } catch (ProcessFailed $e) {
-            $command->error("Unable to start migration task in AWS.");
+            $this->aws->getCommand()->error("Unable to start migration task in AWS.");
             return;
         }
 
         return;
     }
 
-    public function startCommandExecution(Command $command, string $cluster, string $taskId, string $containerName, string $shellCommand): Process
+    public function startCommandExecution(string $cluster, string $taskId, string $containerName, string $shellCommand): Process
     {
-        return $this->aws->newProcess($command, [
+        return $this->aws->newProcess([
             'ecs', 'execute-command',
             '--cluster', $cluster,
             '--task', $taskId,

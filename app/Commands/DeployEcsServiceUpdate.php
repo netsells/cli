@@ -10,7 +10,7 @@ use App\Commands\Console\InputOption;
 use LaravelZero\Framework\Commands\Command;
 use Symfony\Component\Yaml\Exception\ParseException;
 
-class DeployEcsServiceUpdate extends Command
+class DeployEcsServiceUpdate extends BaseCommand
 {
     /**
      * The signature of the command.
@@ -26,18 +26,9 @@ class DeployEcsServiceUpdate extends Command
      */
     protected $description = 'Updates task definition and service';
 
-    /** @var Helpers $helpers */
-    protected $helpers;
-
     protected $clusterName;
     protected $serviceName;
     protected $taskDefinitionName;
-
-    public function __construct(Helpers $helpers)
-    {
-        $this->helpers = $helpers;
-        parent::__construct();
-    }
 
     public function configure()
     {
@@ -63,7 +54,7 @@ class DeployEcsServiceUpdate extends Command
     {
         $requiredBinaries = ['aws', 'docker-compose'];
 
-        if ($this->helpers->checks()->checkAndReportMissingBinaries($this, $requiredBinaries)) {
+        if ($this->helpers->checks()->checkAndReportMissingBinaries($requiredBinaries)) {
             return 1;
         }
 
@@ -73,7 +64,7 @@ class DeployEcsServiceUpdate extends Command
             return 1;
         }
 
-        $taskDefinition = $this->helpers->aws()->ecs()->getTaskDefinition($this, $this->taskDefinitionName);
+        $taskDefinition = $this->helpers->aws()->ecs()->getTaskDefinition($this->taskDefinitionName);
 
         if (!$taskDefinition) {
             return 1;
@@ -91,7 +82,7 @@ class DeployEcsServiceUpdate extends Command
 
         $taskDefinitionJson = $this->prepareTaskDefinitionForRegister($taskDefinition);
 
-        $newTaskDefinition = $this->helpers->aws()->ecs()->registerTaskDefinition($this, $taskDefinitionJson);
+        $newTaskDefinition = $this->helpers->aws()->ecs()->registerTaskDefinition($taskDefinitionJson);
 
         if (!$newTaskDefinition) {
             return 1;
@@ -100,7 +91,7 @@ class DeployEcsServiceUpdate extends Command
         $newTaskDefinitionString = $this->prepareNewTaskDefinitionRevisionString($newTaskDefinition);
         $this->line("Task definition updated to revision {$newTaskDefinitionString}");
 
-        $this->helpers->aws()->ecs()->updateService($this, $this->clusterName, $this->serviceName, $newTaskDefinitionString);
+        $this->helpers->aws()->ecs()->updateService($this->clusterName, $this->serviceName, $newTaskDefinitionString);
         $this->line("Service updated to task definition {$newTaskDefinitionString}");
 
         $migrateCommand = $this->option('migrate-command');
@@ -211,40 +202,11 @@ class DeployEcsServiceUpdate extends Command
 
     protected function gatherTargetImages(): array
     {
-        $dockerComposeYml = $this->getDockerComposeConfigYml();
-        $dockerComposeConfig = ['services' => []];
+        $imageUrls = $this->helpers->docker()->getImageUrlsForServices($this->option('service'));
 
-        if (!$dockerComposeYml) {
-            return [];
-        }
-
-        try {
-            $dockerComposeConfig = Yaml::parse($dockerComposeYml);
-        } catch (ParseException $exception) {
-            $this->error("Failed to parse yml from docker-compose output.");
-            return [];
-        }
-
-        $configuredServices = $this->option('service');
-
-        return collect($dockerComposeConfig['services'])
-            ->transform(function ($service, $serviceName) use ($configuredServices) {
-                // Ensure it's in the .netsells.yml (or passed in via --service)
-                if (!in_array($serviceName, $configuredServices)) {
-                    return null;
-                }
-
-                // We're only updating services that have an image attached
-                if (!isset($service['image'])) {
-                    return null;
-                }
-
-                $parts = explode(':', $service['image']);
-                return $parts[0];
-            })
-            ->filter()
+        return collect($imageUrls)
+            ->map(fn (string $url) => explode(':', $url)[0])
             ->unique()
-            ->values()
             ->all();
     }
 
@@ -253,22 +215,5 @@ class DeployEcsServiceUpdate extends Command
         [$image, $tag] = explode(':', $controllingTag);
 
         return "{$image}:{$newTag}";
-    }
-
-    protected function getDockerComposeConfigYml(): ?string
-    {
-        try {
-            return $this->helpers->process()->withCommand([
-                'docker-compose',
-                '-f', 'docker-compose.yml',
-                '-f', 'docker-compose.prod.yml',
-                '--log-level', 'ERROR',
-                'config',
-            ])
-            ->run();
-        } catch (ProcessFailed $e) {
-            $this->error("Unable to get generated config from docker-compose.");
-            return null;
-        }
     }
 }

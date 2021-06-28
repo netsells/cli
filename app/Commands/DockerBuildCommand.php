@@ -3,12 +3,10 @@
 namespace App\Commands;
 
 use App\Commands\Console\DockerOption;
-use App\Helpers\Helpers;
 use App\Exceptions\ProcessFailed;
-use LaravelZero\Framework\Commands\Command;
 use Symfony\Component\Console\Input\InputOption;
 
-class DockerBuildCommand extends Command
+class DockerBuildCommand extends BaseCommand
 {
     /**
      * The signature of the command.
@@ -23,15 +21,6 @@ class DockerBuildCommand extends Command
      * @var string
      */
     protected $description = 'Builds docker-compose ready for prod';
-
-    /** @var Helpers $helpers */
-    protected $helpers;
-
-    public function __construct(Helpers $helpers)
-    {
-        $this->helpers = $helpers;
-        parent::__construct();
-    }
 
     public function configure()
     {
@@ -52,21 +41,21 @@ class DockerBuildCommand extends Command
     {
         $requiredBinaries = ['docker', 'docker-compose'];
 
-        if ($this->helpers->checks()->checkAndReportMissingBinaries($this, $requiredBinaries)) {
+        if ($this->helpers->checks()->checkAndReportMissingBinaries($requiredBinaries)) {
             return 1;
         }
 
         $requiredFiles = ['docker-compose.yml', 'docker-compose.prod.yml'];
 
-        if ($this->helpers->checks()->checkAndReportMissingFiles($this, $requiredFiles)) {
+        if ($this->helpers->checks()->checkAndReportMissingFiles($requiredFiles)) {
             return 1;
         }
 
-        $tag = $this->helpers->docker()->prefixedTag($this);
+        $tag = $this->helpers->docker()->prefixedTag();
 
         $services = $this->option('service');
 
-        $loginSuccessful = $this->helpers->aws()->ecs()->authenticateDocker($this);
+        $loginSuccessful = $this->helpers->aws()->ecs()->authenticateDocker();
 
         if (!$loginSuccessful) {
             return 1;
