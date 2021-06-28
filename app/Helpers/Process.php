@@ -51,7 +51,9 @@ class Process
                 }
             }
 
-            throw (new ProcessFailed("Process failed to run", $this->process->getExitCode()))->setCommand(implode(' ', $this->arguments));
+            throw (new ProcessFailed("Process failed to run", $this->process->getExitCode()))
+                ->setCommand(implode(' ', $this->arguments))
+                ->setProcess($this->process);
         }
 
         return $this->process->getOutput();
