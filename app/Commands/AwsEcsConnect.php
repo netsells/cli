@@ -119,11 +119,11 @@ class AwsEcsConnect extends Command
             return;
         }
 
-        if ($cluster = $this->helpers->netsellsFile()->get(NetsellsFile::DOCKER_ECS_CLUSTER)) {
-            $clusters = array_map(function ($cluster) {
-                return $this->lastPartArn($cluster);
-            }, $clusters);
+        $clusters = array_map(function ($cluster) {
+            return $this->lastPartArn($cluster);
+        }, $clusters);
 
+        if ($cluster = $this->helpers->netsellsFile()->get(NetsellsFile::DOCKER_ECS_CLUSTER)) {
             if (in_array($cluster, $clusters)) {
                 return $cluster;
             }
@@ -159,11 +159,11 @@ class AwsEcsConnect extends Command
             return;
         }
 
-        if ($service = $this->helpers->netsellsFile()->get(NetsellsFile::DOCKER_ECS_SERVICE)) {
-            $services = array_map(function ($service) {
-                return $this->lastPartArn($service);
-            }, $services);
+        $services = array_map(function ($service) {
+            return $this->lastPartArn($service);
+        }, $services);
 
+        if ($service = $this->helpers->netsellsFile()->get(NetsellsFile::DOCKER_ECS_SERVICE)) {
             if (in_array($service, $services)) {
                 return $service;
             }
@@ -198,6 +198,10 @@ class AwsEcsConnect extends Command
             $this->error("Could not get tasks.");
             return;
         }
+
+        $tasks = array_map(function ($task) {
+            return $this->lastPartArn($task);
+        }, $tasks);
 
         // No point asking if we only have 1
         if (count($tasks) === 1) {
