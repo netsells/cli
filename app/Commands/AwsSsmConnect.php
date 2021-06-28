@@ -105,9 +105,9 @@ class AwsSsmConnect extends Command
         if ($this->option('tunnel')) {
             $rebuildOptions[] = '--tunnel';
 
-            $tunnelRemoteServer = $this->option('tunnel-remote-server') ?: $this->askForTunnelRemoteServer();
-            $tunnelRemotePort = $this->option('tunnel-remote-port') ?: $this->askForTunnelRemotePort();
-            $tunnelLocalPort = $this->option('tunnel-local-port') ?: $this->askForTunnelLocalPort();
+            $tunnelRemoteServer = trim($this->option('tunnel-remote-server') ?: $this->askForTunnelRemoteServer());
+            $tunnelRemotePort = trim($this->option('tunnel-remote-port') ?: $this->askForTunnelRemotePort());
+            $tunnelLocalPort = trim($this->option('tunnel-local-port') ?: $this->askForTunnelLocalPort());
 
             $options[] = '-N';
             $options[] = '-L';
