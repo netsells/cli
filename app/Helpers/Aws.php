@@ -2,8 +2,10 @@
 
 namespace App\Helpers;
 
+use App\Helpers\Aws\S3;
 use App\Helpers\Aws\Ec2;
 use App\Helpers\Aws\Ecs;
+use App\Helpers\Aws\Iam;
 use App\Helpers\Aws\Ssm;
 use App\Helpers\Process;
 use LaravelZero\Framework\Commands\Command;
@@ -37,9 +39,29 @@ class Aws
         return new Ec2($this);
     }
 
+    public function iam(): Iam
+    {
+        return new Iam($this);
+    }
+
+    public function s3(): S3
+    {
+        return new S3($this);
+    }
+
     public function newProcess(Command $command, array $args = []): Process
     {
         return $this->helpers->process()->withCommand(array_merge(['aws'], $args, $this->standardCliArguments($command)));
+    }
+
+    public function standardSdkArguments(Command $command): array
+    {
+        // TODO: Also check env vars (stuck in a different branch)
+        return [
+            'region' => $this->helpers->console()->handleOverridesAndFallbacks($command->option('aws-region'), NetsellsFile::DOCKER_AWS_REGION, Aws::DEFAULT_REGION),
+            'profile' => $command->option('aws-profile') ?: 'default',
+            'version' => 'latest',
+        ];
     }
 
     public function standardCliArguments(Command $command): array
