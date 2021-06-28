@@ -20,7 +20,7 @@ class ProcessFailed extends \Exception
         return $this;
     }
 
-    public function getProcess()
+    public function getProcess(): ?Process
     {
         return $this->process;
     }
