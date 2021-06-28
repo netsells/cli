@@ -92,7 +92,5 @@ class Iam
             'AWS_SECRET_ACCESS_KEY' => $response->get('Credentials')['SecretAccessKey'],
             'AWS_SESSION_TOKEN' => $response->get('Credentials')['SessionToken'],
         ];
-
-        return $response;
     }
 }
