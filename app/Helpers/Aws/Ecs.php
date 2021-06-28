@@ -70,7 +70,7 @@ class Ecs
     {
         try {
             $processOutput = $this->aws->newProcess($command, [
-                'ecs', 'list-clusters',
+                'ecs', 'list-clusters', '--query', 'clusterArns',
             ])
             ->run();
         } catch (ProcessFailed $e) {
@@ -78,14 +78,14 @@ class Ecs
             return null;
         }
 
-        return data_get(json_decode($processOutput, true), 'clusterArns');
+        return json_decode($processOutput, true);
     }
 
     public function listServices(Command $command, string $clusterName): ?array
     {
         try {
             $processOutput = $this->aws->newProcess($command, [
-                'ecs', 'list-services', "--cluster", $clusterName,
+                'ecs', 'list-services', '--cluster', $clusterName, '--query', 'serviceArns',
             ])
             ->run();
         } catch (ProcessFailed $e) {
@@ -93,14 +93,14 @@ class Ecs
             return null;
         }
 
-        return data_get(json_decode($processOutput, true), 'serviceArns');
+        return json_decode($processOutput, true);
     }
 
     public function listTasks(Command $command, string $clusterName, string $serviceName): ?array
     {
         try {
             $processOutput = $this->aws->newProcess($command, [
-                'ecs', 'list-tasks', "--cluster", $clusterName, "--service-name", $serviceName,
+                'ecs', 'list-tasks', '--cluster', $clusterName, '--service-name', $serviceName, '--query', 'taskArns',
             ])
             ->run();
         } catch (ProcessFailed $e) {
@@ -108,14 +108,14 @@ class Ecs
             return null;
         }
 
-        return data_get(json_decode($processOutput, true), 'taskArns');
+        return json_decode($processOutput, true);
     }
 
     public function listContainers(Command $command, string $clusterName, string $taskId): ?array
     {
         try {
             $processOutput = $this->aws->newProcess($command, [
-                'ecs', 'describe-tasks', "--cluster", $clusterName, '--task', $taskId,
+                'ecs', 'describe-tasks', '--cluster', $clusterName, '--task', $taskId,
                 '--query', 'tasks[0].containers[].name',
             ])
             ->run();
@@ -127,28 +127,11 @@ class Ecs
         return json_decode($processOutput, true);
     }
 
-    public function getTasks(Command $command, string $clusterName, array $taskArns): ?array
-    {
-        $commands = array_merge([
-            'ecs', 'describe-tasks', "--cluster", $clusterName, "--tasks",
-        ], $taskArns);
-
-        try {
-            $processOutput = $this->aws->newProcess($command, $commands)
-            ->run();
-        } catch (ProcessFailed $e) {
-            // $command->error("Unable to get tasks [{$taskArns}] from AWS.");
-            return null;
-        }
-
-        return data_get(json_decode($processOutput, true), 'tasks');
-    }
-
     public function registerTaskDefinition(Command $command, string $taskDefinitionJson): ?array
     {
         try {
             $processOutput = $this->aws->newProcess($command, [
-                'ecs', 'register-task-definition', "--cli-input-json", $taskDefinitionJson,
+                'ecs', 'register-task-definition', '--cli-input-json', $taskDefinitionJson,
             ])
             ->run();
         } catch (ProcessFailed $e) {

@@ -42,7 +42,7 @@ class AwsEcsConnect extends Command
             new InputOption('service', null, InputOption::VALUE_OPTIONAL, 'The service name'),
             new InputOption('task', null, InputOption::VALUE_OPTIONAL, 'The task ID'),
             new InputOption('container', null, InputOption::VALUE_OPTIONAL, 'Container name, ie php'),
-            new InputOption('command', "/bin/bash", InputOption::VALUE_OPTIONAL, 'The command to execute'),
+            new InputOption('command', '/bin/bash', InputOption::VALUE_OPTIONAL, 'The command to execute'),
         ], $this->helpers->aws()->commonConsoleOptions()));
     }
 
@@ -108,24 +108,6 @@ class AwsEcsConnect extends Command
         } catch (ProcessFailed $e) {
             $this->error("The SSM Agent likely isn't setup correctly on the selected container.");
         }
-    }
-
-    protected function sendReRunHelper($rebuildOptions): void
-    {
-        $this->info("You can run this command again without having to go through options using this:");
-        $this->info(' ');
-        $this->comment("netsells aws:ssm:connect " . implode(' ', $rebuildOptions));
-        $this->info(' ');
-    }
-
-    protected function appendResolvedArgument($array, $key, $localValue = null): array
-    {
-        if ($this->option($key) || $localValue) {
-            $array[] = "--{$key}";
-            $array[] = $this->option($key) ?: $localValue;
-        }
-
-        return $array;
     }
 
     protected function askForCluster()
