@@ -2,11 +2,10 @@
 
 namespace App\Helpers\Aws;
 
-use App\Helpers\Aws;
-use Aws\Sts\StsClient;
-use App\Helpers\Process;
 use App\Exceptions\ProcessFailed;
+use App\Helpers\Aws;
 use Aws\Iam\IamClient;
+use Aws\Sts\StsClient;
 use LaravelZero\Framework\Commands\Command;
 
 class Iam
@@ -51,7 +50,7 @@ class Iam
         return $response->get('Arn');
     }
 
-    public function authenticateWithMfaDevice(Command $command, $mfaDeviceArn, $code): array
+    public function authenticateWithMfaDevice(Command $command, $mfaDeviceArn, $code): ?array
     {
         $commandOptions = [
             'sts',

@@ -3,11 +3,8 @@
 namespace App\Helpers\Aws;
 
 use App\Helpers\Aws;
-use App\Helpers\Process;
-use App\Exceptions\ProcessFailed;
 use Aws\Result;
 use Aws\S3\S3Client;
-use Illuminate\Support\Collection;
 use LaravelZero\Framework\Commands\Command;
 
 class S3
@@ -18,6 +15,15 @@ class S3
     public function __construct(Aws $aws)
     {
         $this->aws = $aws;
+    }
+
+    public function listFiles(Command $command, string $bucketName): array
+    {
+        $client = new S3Client($this->aws->standardSdkArguments($command));
+
+        $response = $client->listObjectsV2(['Bucket' => $bucketName]);
+
+        return $response->get('Contents');
     }
 
     public function getFile(Command $command, string $bucketName, string $path): Result
@@ -37,5 +43,28 @@ class S3
         $response = $this->getFile($command, $bucketName, $path);
 
         return json_decode($response->get('Body'), true);
+    }
+
+    public function putFile(Command $command, string $bucketName, string $path, string $tempFile): Result
+    {
+        $client = new S3Client($this->aws->standardSdkArguments($command));
+
+        $response = $client->putObject([
+            'Bucket' => $bucketName,
+            'Key' => $path,
+            'SourceFile' => $tempFile,
+        ]);
+
+        return $response;
+    }
+
+    public function deleteFile(Command $command, string $bucketName, string $fileName): Result
+    {
+        $client = new S3Client($this->aws->standardSdkArguments($command));
+
+        return $client->deleteObject([
+            'Bucket' => $bucketName,
+            'Key' => $fileName,
+        ]);
     }
 }

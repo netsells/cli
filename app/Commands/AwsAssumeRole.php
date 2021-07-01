@@ -3,13 +3,9 @@
 namespace App\Commands;
 
 use App\Helpers\Helpers;
-use App\Helpers\NetsellsFile;
-use App\Exceptions\ProcessFailed;
 use Aws\Sts\Exception\StsException;
-use Aws\Sts\StsClient;
-use Symfony\Component\Process\Process;
 use LaravelZero\Framework\Commands\Command;
-use Symfony\Component\Console\Input\InputOption;
+use Symfony\Component\Process\Process;
 
 class AwsAssumeRole extends Command
 {
@@ -94,6 +90,8 @@ class AwsAssumeRole extends Command
         }
 
         $assumePrompt = "{$sessionUser}:{$accountName}";
+
+        $envVars['AWS_S3_ENV'] = $accounts->firstWhere('id', $accountId)['s3env'];
 
         $this->info("Now opening a session following you ({$sessionUser}) assuming the role {$role} on {$accountName} ({$accountId}) . Type `exit` to leave this shell.");
         Process::fromShellCommandline("BASH_SILENCE_DEPRECATION_WARNING=1 PS1='\e[32mnscli\e[34m({$assumePrompt})$\e[39m ' bash")
