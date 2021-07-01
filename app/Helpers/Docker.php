@@ -20,7 +20,7 @@ class Docker extends BaseHelper
 
     public function tagImages(?string $service, string $sourceTag, array $newTags): bool
     {
-        $services = $this->getImageUrlsForServices($this->command, $service ? [$service] : []);
+        $services = $this->getImageUrlsForServices($service ? [$service] : []);
 
         foreach ($services as $serviceImage) {
             foreach ($newTags as $newTag) {

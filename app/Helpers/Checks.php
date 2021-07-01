@@ -4,9 +4,8 @@ namespace App\Helpers;
 
 use Closure;
 use InvalidArgumentException;
-use LaravelZero\Framework\Commands\Command;
 
-class Checks
+class Checks extends BaseHelper
 {
     public const REPORT_FILES = 'files';
     public const REPORT_BINARIES = 'binaries';
@@ -22,7 +21,7 @@ class Checks
         $missingItems = $this->$missingCheckMethod($requiredItems);
 
         if (count($missingItems)  > 0) {
-            $this->reportMissing($this->command, $type, $missingItems);
+            $this->reportMissing($type, $missingItems);
         }
 
         return count($missingItems) > 0;
@@ -30,12 +29,12 @@ class Checks
 
     public function checkAndReportMissingFiles($requiredItems): bool
     {
-        return $this->checkAndReportMissing($this->command, 'files', $requiredItems);
+        return $this->checkAndReportMissing('files', $requiredItems);
     }
 
     public function checkAndReportMissingBinaries($requiredItems): bool
     {
-        return $this->checkAndReportMissing($this->command, 'binaries', $requiredItems);
+        return $this->checkAndReportMissing('binaries', $requiredItems);
     }
 
     public function missingFiles(array $requiredFiles): array

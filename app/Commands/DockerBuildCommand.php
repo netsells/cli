@@ -64,7 +64,9 @@ class DockerBuildCommand extends BaseCommand
         if (count($services) == 0) {
             // Generic full file build as we have no services
             $this->line("Building docker images for all services with tag {$tag}");
-            $this->callBuild($tag);
+            if ($this->callBuild($tag)) {
+                return $this->info("Docker images built.");
+            }
         }
 
         // We've been provided services, we'll run the command for each
@@ -81,13 +83,16 @@ class DockerBuildCommand extends BaseCommand
 
     protected function callBuild(string $tag, string $service = null): bool
     {
+        // Filter ensures we don't send a null value in the array
+        $commandParts = array_filter([
+            'docker-compose',
+            '-f', 'docker-compose.yml',
+            '-f', 'docker-compose.prod.yml',
+            'build', '--no-cache', $service
+        ]);
+
         try {
-            $this->helpers->process()->withCommand([
-                'docker-compose',
-                '-f', 'docker-compose.yml',
-                '-f', 'docker-compose.prod.yml',
-                'build', '--no-cache', $service
-            ])
+            $this->helpers->process()->withCommand($commandParts)
             ->withEnvironmentVars(['TAG' => $tag])
             ->withTimeout(1200) // 20mins
             ->echoLineByLineOutput(true)

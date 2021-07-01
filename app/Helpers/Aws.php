@@ -25,6 +25,11 @@ class Aws extends BaseHelper
         $this->helpers = $helpers;
     }
 
+    public function getHelpers(): Helpers
+    {
+        return $this->helpers;
+    }
+
     public function getCommand(): ?Command
     {
         return $this->command;

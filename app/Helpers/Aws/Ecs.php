@@ -35,7 +35,7 @@ class Ecs
         $password = $processOutput;
 
         try {
-            $this->aws->helpers->process()->withCommand([
+            $this->aws->getHelpers()->process()->withCommand([
                 'docker', 'login',
                 '--username', 'AWS',
                 '--password', $password,
