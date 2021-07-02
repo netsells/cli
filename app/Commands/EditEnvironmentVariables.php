@@ -15,7 +15,7 @@ class EditEnvironmentVariables extends Command
      *
      * @var string
      */
-    protected $signature = 'aws:edit-environment-variables';
+    protected $signature = 'aws:ecs:manage-env';
 
     /**
      * The description of the command.
@@ -46,7 +46,7 @@ class EditEnvironmentVariables extends Command
     public function configure()
     {
         $this->setDefinition(array_merge([
-            new InputOption('client-system', null, InputOption::VALUE_OPTIONAL, 'The client to edit the environment variables for'),
+            new InputOption('s3-bucket-name', null, InputOption::VALUE_OPTIONAL, 'The client to edit the environment variables for'),
         ], $this->helpers->aws()->commonConsoleOptions()));
     }
 
@@ -63,7 +63,7 @@ class EditEnvironmentVariables extends Command
             exit(1);
         }
 
-        $bucket = $this->option('client-system') ?? getenv('AWS_S3_ENV');
+        $bucket = $this->option('s3-bucket-name') ?? getenv('AWS_S3_ENV');
 
         if (!$bucket) {
             $this->error('An S3 bucket for the environment variable files must be specified.');
@@ -131,6 +131,7 @@ class EditEnvironmentVariables extends Command
             if ($deleteMenuItem !== null) {
                 if ($this->confirm("Are you sure you wish to delete {$this->envFiles[$deleteMenuItem]}?")) {
                     $this->helpers->aws()->s3()->deleteFile($this, $bucket, $this->envFiles[$deleteMenuItem]);
+                    $this->info('File deleted.');
                 }
             }
             exit(0);
@@ -159,17 +160,20 @@ class EditEnvironmentVariables extends Command
     {
         $diff = (new Differ())->diff($this->fileContents, $newContents);
 
-        if ($diff == '') {
+        if ($diff == "--- Original\n+++ New\n") {
             $this->info('No changes made.');
             exit(0);
         }
 
-        $this->info("Changes made\n\n");
-
+        $this->info("Changes made\n");
+        $this->comment('---------------------------------------------');
         echo($diff);
+        $this->comment('---------------------------------------------');
+        $this->newLine();
 
-        if ($this->confirm('Do you want to upload the changes? (Y/N)')) {
+        if ($this->confirm('Do you want to upload the changes?')) {
             $this->helpers->aws()->s3()->putFile($this, $bucket, $this->fileName, '/tmp/' . $this->fileName);
+            $this->info('Changes saved.');
         }
     }
 }

@@ -52,7 +52,9 @@ class AwsAssumeRole extends Command
         }
 
         $accountId = $this->menu("Choose an account to connect to...", array_combine($accounts->pluck('id')->all(), $accounts->pluck('name')->all()))->open();
-        $accountName = $accounts->firstWhere('id', $accountId)['name'];
+
+        $account = $accounts->firstWhere('id', $accountId);
+        $accountName = $account['name'];
 
         $roles = collect($this->helpers->aws()->s3()->getJsonFile($this, 'netsells-security-meta', 'roles.json')['roles'])->pluck('name')->all();
 
@@ -91,7 +93,7 @@ class AwsAssumeRole extends Command
 
         $assumePrompt = "{$sessionUser}:{$accountName}";
 
-        $envVars['AWS_S3_ENV'] = $accounts->firstWhere('id', $accountId)['s3env'];
+        $envVars['AWS_S3_ENV'] = $account['s3env'];
 
         $this->info("Now opening a session following you ({$sessionUser}) assuming the role {$role} on {$accountName} ({$accountId}) . Type `exit` to leave this shell.");
         Process::fromShellCommandline("BASH_SILENCE_DEPRECATION_WARNING=1 PS1='\e[32mnscli\e[34m({$assumePrompt})$\e[39m ' bash")
