@@ -57,4 +57,5 @@ return [
         App\Providers\AppServiceProvider::class,
     ],
 
+    'editor' => env('EDITOR', '/usr/bin/vi'),
 ];
