@@ -17,22 +17,6 @@ chmod +x /usr/local/bin/netsells
 netsells
 ```
 
-In order to use the `aws:edit-environment-variables` command, it is necessary to install xdiff:
-
-```bash
-wget http://www.xmailserver.org/libxdiff-0.22.tar.gz && 
-    tar -xzf libxdiff-0.22.tar.gz && 
-    cd libxdiff-0.22 && 
-    ./configure && 
-    make && 
-    make install && 
-    cd .. && 
-    rm -rf libxdiff-0.22 && 
-    rm libxdiff-0.22.tar.gz
-
-echo '' | pecl install xdiff
-```
-
 ### Usage
 
 ```

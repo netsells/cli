@@ -5,6 +5,7 @@ namespace App\Commands;
 use App\Helpers\Helpers;
 use Illuminate\Support\Str;
 use LaravelZero\Framework\Commands\Command;
+use SebastianBergmann\Diff\Differ;
 use Symfony\Component\Console\Input\InputOption;
 
 class EditEnvironmentVariables extends Command
@@ -156,7 +157,7 @@ class EditEnvironmentVariables extends Command
 
     private function checkDiffAndUpload(string $newContents, string $bucket): void
     {
-        $diff = xdiff_string_diff($this->fileContents, $newContents);
+        $diff = (new Differ())->diff($this->fileContents, $newContents);
 
         if ($diff == '') {
             $this->info('No changes made.');

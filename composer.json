@@ -17,6 +17,7 @@
         "laravel-zero/framework": "^8.0",
         "nunomaduro/laravel-console-menu": "^3.0",
         "padraic/phar-updater": "^1.0.6",
+        "sebastian/diff": "*",
         "symfony/yaml": "^5.0"
     },
     "require-dev": {
