@@ -77,9 +77,20 @@ class Docker extends BaseHelper
             return [];
         }
 
+        if (empty($services)) {
+            // We haven't been provided with any services, so let's get them from the
+            // netsells file
+            $services = $this->helpers->netsellsFile()->get('docker.services', []);
+
+            if (empty($services)) {
+                $this->command->warn("No services in the .netsells.yml file.");
+                return [];
+            }
+        }
+
         return collect($config['services'])
             ->filter(function (array $serviceData, string $serviceName) use ($services) {
-                return isset($serviceData['image']) && (empty($services) || in_array($serviceName, $services));
+                return isset($serviceData['image']) && in_array($serviceName, $services);
             })
             ->map(fn (array $serviceData) => $serviceData['image'])
             ->unique()

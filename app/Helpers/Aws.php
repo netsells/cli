@@ -62,7 +62,8 @@ class Aws extends BaseHelper
 
     public function newProcess(array $args = []): Process
     {
-        return $this->helpers->process()->withCommand(array_merge(['aws'], $args, $this->standardCliArguments()));
+        return $this->helpers->process()
+            ->withCommand(array_merge(['aws'], $args, $this->standardCliArguments()));
     }
 
     public function standardSdkArguments(): array
@@ -96,7 +97,7 @@ class Aws extends BaseHelper
         return [
             new InputOption('aws-region', null, InputOption::VALUE_OPTIONAL, 'Override the default AWS region', Aws::DEFAULT_REGION),
             new InputOption('aws-account-id', null, InputOption::VALUE_OPTIONAL, 'Override the default AWS account ID', Aws::DEFAULT_ACCOUNT_ID),
-            new InputOption('aws-profile', null, InputOption::VALUE_OPTIONAL, 'Override the AWS profile to use', 'default'),
+            new InputOption('aws-profile', null, InputOption::VALUE_OPTIONAL, 'Override the AWS profile to use'),
         ];
     }
 

@@ -39,7 +39,7 @@ class DockerBuildCommand extends BaseCommand
      */
     public function handle()
     {
-        $requiredBinaries = ['docker', 'docker-compose'];
+        $requiredBinaries = ['docker', 'docker-compose', 'aws'];
 
         if ($this->helpers->checks()->checkAndReportMissingBinaries($requiredBinaries)) {
             return 1;

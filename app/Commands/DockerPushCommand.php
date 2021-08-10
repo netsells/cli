@@ -66,14 +66,14 @@ class DockerPushCommand extends BaseCommand
             // Generic full file build as we have no services
             $this->line("Pushing docker images for all services with tags " . implode(', ', $tags));
             $this->callPush($tags);
+        } else {
+            // We've been provided services, we'll run the command for each
+            $this->line(sprintf(
+                "Pushing docker images for services with tags %s: %s",
+                implode(', ', $tags),
+                implode(',', $services)
+            ));
         }
-
-        // We've been provided services, we'll run the command for each
-        $this->line(sprintf(
-            "Pushing docker images for services with tags %s: %s",
-            implode(', ', $tags),
-            implode(',', $services)
-        ));
 
         foreach ($services as $service) {
             if (!$this->callPush($tags, $service)) {
@@ -94,12 +94,12 @@ class DockerPushCommand extends BaseCommand
 
         foreach ($tags as $tag) {
             try {
-                $this->helpers->process()->withCommand([
+                $this->helpers->process()->withCommand(array_filter([
                     'docker-compose',
                     '-f', 'docker-compose.yml',
                     '-f', 'docker-compose.prod.yml',
                     'push', $service
-                ])
+                ]))
                 ->withEnvironmentVars(['TAG' => $tag])
                 ->withTimeout(1200) // 20mins
                 ->echoLineByLineOutput(true)
