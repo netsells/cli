@@ -2,14 +2,15 @@
 
 namespace App\Helpers;
 
+use App\Commands\Console\DockerOption;
+use App\Helpers\Aws\S3;
 use App\Helpers\Aws\Ec2;
 use App\Helpers\Aws\Ecs;
 use App\Helpers\Aws\Iam;
-use App\Helpers\Aws\S3;
 use App\Helpers\Aws\Ssm;
+use App\Commands\Console\InputOption;
 use Aws\Credentials\CredentialProvider;
 use LaravelZero\Framework\Commands\Command;
-use Symfony\Component\Console\Input\InputOption;
 
 class Aws extends BaseHelper
 {
@@ -102,8 +103,8 @@ class Aws extends BaseHelper
     public static function commonConsoleOptions(): array
     {
         return [
-            new InputOption('aws-region', null, InputOption::VALUE_OPTIONAL, 'Override the default AWS region', Aws::DEFAULT_REGION),
-            new InputOption('aws-account-id', null, InputOption::VALUE_OPTIONAL, 'Override the default AWS account ID', Aws::DEFAULT_ACCOUNT_ID),
+            new DockerOption('aws-region', null, InputOption::VALUE_OPTIONAL, 'Override the default AWS region', Aws::DEFAULT_REGION),
+            new DockerOption('aws-account-id', null, InputOption::VALUE_OPTIONAL, 'Override the default AWS account ID', Aws::DEFAULT_ACCOUNT_ID),
             new InputOption('aws-profile', null, InputOption::VALUE_OPTIONAL, 'Override the AWS profile to use'),
         ];
     }

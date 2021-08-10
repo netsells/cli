@@ -25,7 +25,6 @@ class Ecs
         try {
             $processOutput = $this->aws->newProcess([
                 'ecr', 'get-login-password',
-                '--region', $awsRegion,
             ])
             ->run();
         } catch (ProcessFailed $e) {
