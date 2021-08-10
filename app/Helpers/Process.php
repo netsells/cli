@@ -78,7 +78,7 @@ class Process
 
     public function withEnvironmentVars(array $environmentVars)
     {
-        $this->environmentVars = $environmentVars;
+        $this->environmentVars = array_merge($this->environmentVars, $environmentVars);
         return $this;
     }
 

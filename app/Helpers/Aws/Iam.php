@@ -6,7 +6,6 @@ use App\Exceptions\ProcessFailed;
 use App\Helpers\Aws;
 use Aws\Iam\IamClient;
 use Aws\Sts\StsClient;
-use LaravelZero\Framework\Commands\Command;
 
 class Iam
 {
@@ -18,13 +17,13 @@ class Iam
         $this->aws = $aws;
     }
 
-    public function listMfaDevices(Command $command, $userArn = null): array
+    public function listMfaDevices($userArn = null): array
     {
         if (!$userArn) {
-            $userArn = $this->getCallerArn($command);
+            $userArn = $this->getCallerArn();
         }
 
-        $client = new IamClient($this->aws->standardSdkArguments($command));
+        $client = new IamClient($this->aws->standardSdkArguments());
 
         $devices = $client->listVirtualMFADevices([
             'AssignmentStatus' => 'Assigned'
@@ -41,16 +40,16 @@ class Iam
             ->all();
     }
 
-    public function getCallerArn(Command $command): string
+    public function getCallerArn(): string
     {
-        $client = new StsClient($this->aws->standardSdkArguments($command));
+        $client = new StsClient($this->aws->standardSdkArguments());
 
         $response = $client->getCallerIdentity();
 
         return $response->get('Arn');
     }
 
-    public function authenticateWithMfaDevice(Command $command, $mfaDeviceArn, $code): ?array
+    public function authenticateWithMfaDevice($mfaDeviceArn, $code): array
     {
         $commandOptions = [
             'sts',
@@ -60,19 +59,19 @@ class Iam
         ];
 
         try {
-            $processOutput = $this->aws->newProcess($command, $commandOptions)
+            $processOutput = $this->aws->newProcess($commandOptions)
             ->run();
         } catch (ProcessFailed $e) {
-            $command->error("Unable to authenicate MFA");
+            $this->command->error("Unable to authenicate MFA");
             return null;
         }
 
         return json_decode($processOutput, true);
     }
 
-    public function assumeRole(Command $command, int $accountId, string $role, string $sessionUser, ?string $mfaDevice = null, ?string $mfaCode = null): array
+    public function assumeRole(int $accountId, string $role, string $sessionUser, ?string $mfaDevice = null, ?string $mfaCode = null): array
     {
-        $client = new StsClient($this->aws->standardSdkArguments($command));
+        $client = new StsClient($this->aws->standardSdkArguments());
 
         $assumeData = [
             'RoleArn' => "arn:aws:iam::{$accountId}:role/{$role}",

@@ -17,18 +17,18 @@ class S3
         $this->aws = $aws;
     }
 
-    public function listFiles(Command $command, string $bucketName): array
+    public function listFiles(string $bucketName): array
     {
-        $client = new S3Client($this->aws->standardSdkArguments($command));
+        $client = new S3Client($this->aws->standardSdkArguments());
 
         $response = $client->listObjectsV2(['Bucket' => $bucketName]);
 
         return $response->get('Contents');
     }
 
-    public function getFile(Command $command, string $bucketName, string $path): Result
+    public function getFile(string $bucketName, string $path): Result
     {
-        $client = new S3Client($this->aws->standardSdkArguments($command));
+        $client = new S3Client($this->aws->standardSdkArguments());
 
         $response = $client->getObject([
             'Bucket' => $bucketName,
@@ -38,16 +38,16 @@ class S3
         return $response;
     }
 
-    public function getJsonFile(Command $command, string $bucketName, string $path): array
+    public function getJsonFile(string $bucketName, string $path): array
     {
-        $response = $this->getFile($command, $bucketName, $path);
+        $response = $this->getFile($bucketName, $path);
 
         return json_decode($response->get('Body'), true);
     }
 
-    public function putFile(Command $command, string $bucketName, string $path, string $tempFile): Result
+    public function putFile(string $bucketName, string $path, string $tempFile): Result
     {
-        $client = new S3Client($this->aws->standardSdkArguments($command));
+        $client = new S3Client($this->aws->standardSdkArguments());
 
         $response = $client->putObject([
             'Bucket' => $bucketName,
@@ -58,9 +58,9 @@ class S3
         return $response;
     }
 
-    public function deleteFile(Command $command, string $bucketName, string $fileName): Result
+    public function deleteFile(string $bucketName, string $fileName): Result
     {
-        $client = new S3Client($this->aws->standardSdkArguments($command));
+        $client = new S3Client($this->aws->standardSdkArguments());
 
         return $client->deleteObject([
             'Bucket' => $bucketName,

@@ -8,7 +8,7 @@ use LaravelZero\Framework\Commands\Command;
 use SebastianBergmann\Diff\Differ;
 use Symfony\Component\Console\Input\InputOption;
 
-class EditEnvironmentVariables extends Command
+class EditEnvironmentVariables extends BaseCommand
 {
     /**
      * The signature of the command.
@@ -37,12 +37,6 @@ class EditEnvironmentVariables extends Command
 
     private string $fileContents;
 
-    public function __construct(Helpers $helpers)
-    {
-        $this->helpers = $helpers;
-        parent::__construct();
-    }
-
     public function configure()
     {
         $this->setDefinition(array_merge([
@@ -59,14 +53,14 @@ class EditEnvironmentVariables extends Command
     {
         $requiredBinaries = ['aws', config('app.editor')];
 
-        if ($this->helpers->checks()->checkAndReportMissingBinaries($this, $requiredBinaries)) {
+        if ($this->helpers->checks()->checkAndReportMissingBinaries($requiredBinaries)) {
             exit(1);
         }
 
         $bucket = $this->option('s3-bucket-name') ?? getenv('AWS_S3_ENV');
 
         if (!$bucket) {
-            $this->error('An S3 bucket for the environment variable files must be specified.');
+            $this->error('An S3 bucket for the environment variable files must be specified. Calling aws:assume-role will do this automatically for you.');
             exit(1);
         }
 
@@ -94,7 +88,7 @@ class EditEnvironmentVariables extends Command
 
     private function getMenuItem(string $bucket): ?int
     {
-        $this->envFiles = collect($this->helpers->aws()->s3()->listFiles($this, $bucket))
+        $this->envFiles = collect($this->helpers->aws()->s3()->listFiles($bucket))
             ->pluck('Key')
             ->map(function ($filename) {
                 return $filename;
@@ -105,7 +99,7 @@ class EditEnvironmentVariables extends Command
             ->toArray();
 
         $additionalMenuOptions = ['Create new file'];
-        $callerArn = $this->helpers->aws()->iam()->getCallerArn($this);
+        $callerArn = $this->helpers->aws()->iam()->getCallerArn();
         $callerArnParts = explode('/', $callerArn);
 
         if ($callerArnParts[1] == 'NetsellsSecurityOps') {
@@ -119,7 +113,7 @@ class EditEnvironmentVariables extends Command
     {
         if ($menuItem < count($this->envFiles)) {
             $this->fileName = $this->envFiles[$menuItem];
-            $this->fileContents = (string)$this->helpers->aws()->s3()->getFile($this, $bucket, $this->fileName)->get('Body');
+            $this->fileContents = (string)$this->helpers->aws()->s3()->getFile($bucket, $this->fileName)->get('Body');
         } elseif ($menuItem == count($this->envFiles)) {
             $this->fileName = $this->ask('Enter name of new file (must have an extension of .env)');
             if (!Str::endsWith($this->fileName, '.env')) {
@@ -127,10 +121,10 @@ class EditEnvironmentVariables extends Command
             }
             $this->fileContents = '';
         } else {
-            $deleteMenuItem = $this->menu("Choose a file to edit",$this->envFiles)->open();
+            $deleteMenuItem = $this->menu("Choose a file to edit", $this->envFiles)->open();
             if ($deleteMenuItem !== null) {
                 if ($this->confirm("Are you sure you wish to delete {$this->envFiles[$deleteMenuItem]}?")) {
-                    $this->helpers->aws()->s3()->deleteFile($this, $bucket, $this->envFiles[$deleteMenuItem]);
+                    $this->helpers->aws()->s3()->deleteFile($bucket, $this->envFiles[$deleteMenuItem]);
                     $this->info('File deleted.');
                 }
             }
@@ -172,7 +166,7 @@ class EditEnvironmentVariables extends Command
         $this->newLine();
 
         if ($this->confirm('Do you want to upload the changes?')) {
-            $this->helpers->aws()->s3()->putFile($this, $bucket, $this->fileName, '/tmp/' . $this->fileName);
+            $this->helpers->aws()->s3()->putFile($bucket, $this->fileName, '/tmp/' . $this->fileName);
             $this->info('Changes saved.');
         }
     }

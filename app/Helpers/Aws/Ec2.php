@@ -3,11 +3,8 @@
 namespace App\Helpers\Aws;
 
 use App\Helpers\Aws;
-use App\Helpers\NetsellsFile;
 use App\Exceptions\ProcessFailed;
 use Illuminate\Support\Collection;
-use Symfony\Component\Process\Process;
-use LaravelZero\Framework\Commands\Command;
 
 class Ec2
 {
@@ -19,7 +16,7 @@ class Ec2
         $this->aws = $aws;
     }
 
-    public function listInstances(Command $command, $query): ?Collection
+    public function listInstances($query): ?Collection
     {
         $commandOptions = [
             'ec2',
@@ -31,10 +28,10 @@ class Ec2
         }
 
         try {
-            $processOutput = $this->aws->newProcess($command, $commandOptions)
+            $processOutput = $this->aws->newProcess($commandOptions)
             ->run();
         } catch (ProcessFailed $e) {
-            $command->error("Unable to list ec2 instances");
+            $this->command->error("Unable to list ec2 instances");
             return null;
         }
 

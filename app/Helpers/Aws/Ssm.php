@@ -17,10 +17,10 @@ class Ssm
         $this->aws = $aws;
     }
 
-    public function sendRemoteCommand(Command $command, string $instanceId, string $remoteCommand): bool
+    public function sendRemoteCommand(string $instanceId, string $remoteCommand): bool
     {
         try {
-            $this->aws->newProcess($command, [
+            $this->aws->newProcess([
                 'ssm', 'send-command',
                 '--instance-ids', $instanceId,
                 '--document-name', 'AWS-RunShellScript',
@@ -31,15 +31,15 @@ class Ssm
 
             return true;
         } catch (ProcessFailed $e) {
-            $command->error("Unable to send SSH key to server via ssm send-command.");
-            $command->comment("Failing command was: " . $e->getCommand());
+            $this->aws->getCommand()->error("Unable to send SSH key to server via ssm send-command.");
+            $this->aws->getCommand()->comment("Failing command was: " . $e->getCommand());
             return false;
         }
     }
 
-    public function startSessionProcess(Command $command, string $instanceId): Process
+    public function startSessionProcess(string $instanceId): Process
     {
-        return $this->aws->newProcess($command, [
+        return $this->aws->newProcess([
             'ssm', 'start-session',
             '--target', $instanceId,
             '--document-name', 'AWS-StartSSHSession',

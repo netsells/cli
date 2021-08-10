@@ -2,14 +2,11 @@
 
 namespace App\Commands;
 
+use App\Commands\Console\DockerOption;
 use App\Exceptions\ProcessFailed;
-use App\Helpers\Helpers;
-use App\Helpers\NetsellsFile;
-use Symfony\Component\Process\Process;
-use LaravelZero\Framework\Commands\Command;
 use Symfony\Component\Console\Input\InputOption;
 
-class DockerBuildCommand extends Command
+class DockerBuildCommand extends BaseCommand
 {
     /**
      * The signature of the command.
@@ -25,20 +22,13 @@ class DockerBuildCommand extends Command
      */
     protected $description = 'Builds docker-compose ready for prod';
 
-    /** @var Helpers $helpers */
-    protected $helpers;
-
-    public function __construct(Helpers $helpers)
-    {
-        $this->helpers = $helpers;
-        parent::__construct();
-    }
-
     public function configure()
     {
         $this->setDefinition(array_merge([
-            new InputOption('tag', null, InputOption::VALUE_OPTIONAL, 'The tag that should be built with the images. Defaults to the current commit SHA'),
-            new InputOption('service', null, InputOption::VALUE_OPTIONAL | InputOption::VALUE_IS_ARRAY, 'The service that should be built. Not defining this will push all services'),
+            new DockerOption('tag', null, DockerOption::VALUE_OPTIONAL, 'The tag that should be built with the images. Defaults to the current commit SHA', $this->helpers->git()->currentSha()),
+            new DockerOption('tag-prefix', null, DockerOption::VALUE_OPTIONAL, 'The tag prefix that should be built with the images. Defaults to null'),
+            new InputOption('environment', null, InputOption::VALUE_OPTIONAL, 'The destination environment for the images'),
+            new DockerOption('service', null, DockerOption::VALUE_OPTIONAL | DockerOption::VALUE_IS_ARRAY, 'The service that should be built. Not defining this will push all services', []),
         ], $this->helpers->aws()->commonConsoleOptions()));
     }
 
@@ -49,26 +39,23 @@ class DockerBuildCommand extends Command
      */
     public function handle()
     {
-        $requiredBinaries = ['docker', 'docker-compose'];
+        $requiredBinaries = ['docker', 'docker-compose', 'aws'];
 
-        if ($this->helpers->checks()->checkAndReportMissingBinaries($this, $requiredBinaries)) {
+        if ($this->helpers->checks()->checkAndReportMissingBinaries($requiredBinaries)) {
             return 1;
         }
 
         $requiredFiles = ['docker-compose.yml', 'docker-compose.prod.yml'];
 
-        if ($this->helpers->checks()->checkAndReportMissingFiles($this, $requiredFiles)) {
+        if ($this->helpers->checks()->checkAndReportMissingFiles($requiredFiles)) {
             return 1;
         }
 
-        $tag = trim($this->option('tag') ?: $this->helpers->git()->currentSha());
-        $services = $this->helpers->console()->handleOverridesAndFallbacks(
-            $this->option('service'),
-            NetsellsFile::DOCKER_SERVICES,
-            []
-        );
+        $tag = $this->helpers->docker()->prefixedTag();
 
-        $loginSuccessful = $this->helpers->aws()->ecs()->authenticateDocker($this);
+        $services = $this->option('service');
+
+        $loginSuccessful = $this->helpers->aws()->ecs()->authenticateDocker();
 
         if (!$loginSuccessful) {
             return 1;
@@ -77,7 +64,9 @@ class DockerBuildCommand extends Command
         if (count($services) == 0) {
             // Generic full file build as we have no services
             $this->line("Building docker images for all services with tag {$tag}");
-            $this->callBuild($tag);
+            if ($this->callBuild($tag)) {
+                return $this->info("Docker images built.");
+            }
         }
 
         // We've been provided services, we'll run the command for each
@@ -94,13 +83,16 @@ class DockerBuildCommand extends Command
 
     protected function callBuild(string $tag, string $service = null): bool
     {
+        // Filter ensures we don't send a null value in the array
+        $commandParts = array_filter([
+            'docker-compose',
+            '-f', 'docker-compose.yml',
+            '-f', 'docker-compose.prod.yml',
+            'build', '--no-cache', $service
+        ]);
+
         try {
-            $this->helpers->process()->withCommand([
-                'docker-compose',
-                '-f', 'docker-compose.yml',
-                '-f', 'docker-compose.prod.yml',
-                'build', '--no-cache', $service
-            ])
+            $this->helpers->process()->withCommand($commandParts)
             ->withEnvironmentVars(['TAG' => $tag])
             ->withTimeout(1200) // 20mins
             ->echoLineByLineOutput(true)

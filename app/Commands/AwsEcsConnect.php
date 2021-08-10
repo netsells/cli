@@ -3,14 +3,11 @@
 namespace App\Commands;
 
 use App\Exceptions\ProcessFailed;
-use App\Helpers\Helpers;
 use App\Helpers\NetsellsFile;
 use Symfony\Component\Process\Process;
-use LaravelZero\Framework\Commands\Command;
 use Symfony\Component\Console\Input\InputOption;
-use Symfony\Component\Console\Output\OutputInterface;
 
-class AwsEcsConnect extends Command
+class AwsEcsConnect extends BaseCommand
 {
     /**
      * The signature of the command.
@@ -25,15 +22,6 @@ class AwsEcsConnect extends Command
      * @var string
      */
     protected $description = 'Connect to an docker container in ECS via SSM';
-
-    /** @var Helpers $helpers */
-    protected $helpers;
-
-    public function __construct(Helpers $helpers)
-    {
-        $this->helpers = $helpers;
-        parent::__construct();
-    }
 
     public function configure()
     {
@@ -55,7 +43,7 @@ class AwsEcsConnect extends Command
     {
         $requiredBinaries = ['aws'];
 
-        if ($this->helpers->checks()->checkAndReportMissingBinaries($this, $requiredBinaries)) {
+        if ($this->helpers->checks()->checkAndReportMissingBinaries($requiredBinaries)) {
             return 1;
         }
 
@@ -95,7 +83,7 @@ class AwsEcsConnect extends Command
         }
 
         try {
-            $command = $this->helpers->aws()->ecs()->startCommandExecution($this, $cluster, $task, $container, $shellCommand);
+            $command = $this->helpers->aws()->ecs()->startCommandExecution($cluster, $task, $container, $shellCommand);
 
             $command->withTimeout(null)
                 ->echoLineByLineOutput(false)
@@ -112,7 +100,7 @@ class AwsEcsConnect extends Command
 
     protected function askForCluster()
     {
-        $clusters = $this->helpers->aws()->ecs()->listClusters($this);
+        $clusters = $this->helpers->aws()->ecs()->listClusters();
 
         if (is_null($clusters)) {
             $this->error("Could not get clusters.");
@@ -152,7 +140,7 @@ class AwsEcsConnect extends Command
 
     protected function askForService($cluster)
     {
-        $services = $this->helpers->aws()->ecs()->listServices($this, $cluster);
+        $services = $this->helpers->aws()->ecs()->listServices($cluster);
 
         if (is_null($services)) {
             $this->error("Could not get services.");
@@ -192,7 +180,7 @@ class AwsEcsConnect extends Command
 
     protected function askForTask($cluster, $service)
     {
-        $tasks = $this->helpers->aws()->ecs()->listTasks($this, $cluster, $service);
+        $tasks = $this->helpers->aws()->ecs()->listTasks($cluster, $service);
 
         if (is_null($tasks)) {
             $this->error("Could not get tasks.");
@@ -224,7 +212,7 @@ class AwsEcsConnect extends Command
 
     protected function askForContainer($cluster, $service, $task)
     {
-        $containers = $this->helpers->aws()->ecs()->listContainers($this, $cluster, $task);
+        $containers = $this->helpers->aws()->ecs()->listContainers($cluster, $task);
 
         if (is_null($containers)) {
             $this->error("Could not get containers.");
