@@ -137,7 +137,7 @@ class AwsSsmConnect extends BaseCommand
     {
         $this->info("You can run this command again without having to go through options using this:");
         $this->info(' ');
-        $this->comment("netsells aws:ssm:connect " . implode(' ', $rebuildOptions));
+        $this->comment("netsells " . $this->signature . " " . implode(' ', $rebuildOptions));
         $this->info(' ');
     }
 
@@ -189,7 +189,7 @@ class AwsSsmConnect extends BaseCommand
         return $this->menu("Choose an instance to connect to...", $instances->toArray())->open();
     }
 
-    private function generateTempSshKey()
+    protected function generateTempSshKey()
     {
         $requiredBinaries = ['aws', 'ssh', 'ssh-keygen'];
 
@@ -227,7 +227,7 @@ class AwsSsmConnect extends BaseCommand
         return trim(file_get_contents($pubKeyName));
     }
 
-    private function generateRemoteCommand($username, $key)
+    protected function generateRemoteCommand($username, $key)
     {
         // Borrowed from https://github.com/elpy1/ssh-over-ssm/blob/master/ssh-ssm.sh#L10
         return trim(<<<EOF
