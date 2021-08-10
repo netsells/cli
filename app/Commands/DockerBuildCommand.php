@@ -2,9 +2,9 @@
 
 namespace App\Commands;
 
-use App\Commands\Console\DockerOption;
 use App\Exceptions\ProcessFailed;
-use Symfony\Component\Console\Input\InputOption;
+use App\Commands\Console\InputOption;
+use App\Commands\Console\DockerOption;
 
 class DockerBuildCommand extends BaseCommand
 {

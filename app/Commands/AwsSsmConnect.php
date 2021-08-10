@@ -62,12 +62,6 @@ class AwsSsmConnect extends BaseCommand
 
         $rebuildOptions = $this->appendResolvedArgument($rebuildOptions, 'username', $username);
         $rebuildOptions = $this->appendResolvedArgument($rebuildOptions, 'instance-id', $instanceId);
-
-        $awsOptions = [
-            '--aws-profile' => $this->option('aws-profile') ?: 'default',
-            '--aws-region' => $this->option('aws-region') ?: 'eu-west-2',
-        ];
-
         $rebuildOptions = $this->appendResolvedArgument($rebuildOptions, 'aws-profile');
         $rebuildOptions = $this->appendResolvedArgument($rebuildOptions, 'aws-region');
 

@@ -2,9 +2,7 @@
 
 namespace App\Commands;
 
-use App\Helpers\Helpers;
 use Aws\Sts\Exception\StsException;
-use LaravelZero\Framework\Commands\Command;
 use Symfony\Component\Process\Process;
 
 class AwsAssumeRole extends BaseCommand

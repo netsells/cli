@@ -2,10 +2,10 @@
 
 namespace App\Commands;
 
-use App\Exceptions\ProcessFailed;
 use App\Helpers\NetsellsFile;
+use App\Exceptions\ProcessFailed;
+use App\Commands\Console\InputOption;
 use Symfony\Component\Process\Process;
-use Symfony\Component\Console\Input\InputOption;
 
 class AwsEcsConnect extends BaseCommand
 {

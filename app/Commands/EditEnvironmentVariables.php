@@ -2,11 +2,11 @@
 
 namespace App\Commands;
 
+use App\Commands\Console\InputOption;
 use App\Helpers\Helpers;
 use Illuminate\Support\Str;
 use LaravelZero\Framework\Commands\Command;
 use SebastianBergmann\Diff\Differ;
-use Symfony\Component\Console\Input\InputOption;
 
 class EditEnvironmentVariables extends BaseCommand
 {

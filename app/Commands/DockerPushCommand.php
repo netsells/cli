@@ -3,8 +3,8 @@
 namespace App\Commands;
 
 use App\Exceptions\ProcessFailed;
+use App\Commands\Console\InputOption;
 use App\Commands\Console\DockerOption;
-use Symfony\Component\Console\Input\InputOption;
 
 class DockerPushCommand extends BaseCommand
 {
