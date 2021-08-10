@@ -5,7 +5,6 @@ namespace Tests\Feature;
 use App\Exceptions\ProcessFailed;
 use App\Helpers\Process;
 use Illuminate\Foundation\Testing\WithFaker;
-use Mockery;
 use Tests\TestCase;
 
 class AwsEc2ListCommandTest extends TestCase

@@ -2,12 +2,12 @@
 
 namespace App\Helpers;
 
-use App\Helpers\Aws\S3;
 use App\Helpers\Aws\Ec2;
 use App\Helpers\Aws\Ecs;
 use App\Helpers\Aws\Iam;
+use App\Helpers\Aws\S3;
 use App\Helpers\Aws\Ssm;
-use App\Helpers\Process;
+use Aws\Credentials\CredentialProvider;
 use LaravelZero\Framework\Commands\Command;
 use Symfony\Component\Console\Input\InputOption;
 
@@ -73,6 +73,13 @@ class Aws extends BaseHelper
             'profile' => $this->command->option('aws-profile'),
             'version' => 'latest',
         ];
+
+        if (!empty(getenv('AWS_ACCESS_KEY_ID')) && !empty(getenv('AWS_SECRET_ACCESS_KEY')) && !empty(getenv('AWS_SESSION_TOKEN'))) {
+            unset($arguments['profile']);
+            $arguments['credentials'] = CredentialProvider::env();
+        }
+
+        return $arguments;
     }
 
     public function standardCliArguments(): array

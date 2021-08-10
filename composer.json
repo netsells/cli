@@ -11,12 +11,13 @@
         }
     ],
     "require": {
-        "php": "^7.3 || ^8.0",
+        "php": "^7.4 || ^8.0",
         "aws/aws-sdk-php": "^3.183",
         "laminas/laminas-text": "^2.9",
         "laravel-zero/framework": "^8.0",
         "nunomaduro/laravel-console-menu": "^3.0",
         "padraic/phar-updater": "^1.0.6",
+        "sebastian/diff": "*",
         "symfony/yaml": "^5.0"
     },
     "require-dev": {

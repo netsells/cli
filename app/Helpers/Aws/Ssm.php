@@ -31,8 +31,8 @@ class Ssm
 
             return true;
         } catch (ProcessFailed $e) {
-            $this->command->error("Unable to send SSH key to server via ssm send-command.");
-            $this->command->comment("Failing command was: " . $e->getCommand());
+            $this->aws->getCommand()->error("Unable to send SSH key to server via ssm send-command.");
+            $this->aws->getCommand()->comment("Failing command was: " . $e->getCommand());
             return false;
         }
     }

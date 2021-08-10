@@ -2,12 +2,10 @@
 
 namespace App\Helpers\Aws;
 
-use App\Helpers\Aws;
-use Aws\Sts\StsClient;
-use App\Helpers\Process;
 use App\Exceptions\ProcessFailed;
+use App\Helpers\Aws;
 use Aws\Iam\IamClient;
-use LaravelZero\Framework\Commands\Command;
+use Aws\Sts\StsClient;
 
 class Iam
 {
