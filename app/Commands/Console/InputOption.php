@@ -23,7 +23,7 @@ class InputOption extends BaseInputOption
         $constantName = sprintf("%s::%s", NetsellsFile::class, $this->netsellsFilePrefix . $keyName);
 
         if (defined($constantName)) {
-            return (new NetsellsFile())->get(constant($constantName));
+            return (new NetsellsFile())->get(constant($constantName), parent::getDefault());
         }
 
         return parent::getDefault();
