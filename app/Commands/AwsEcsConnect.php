@@ -164,16 +164,7 @@ class AwsEcsConnect extends BaseCommand
             return $services[0];
         }
 
-        // Make the menu have nicer names
-        $serviceNames = array_map(function ($service) {
-            $parts = explode('/', $service);
-            unset($parts[0]);
-            unset($parts[1]);
-
-            return implode('/', $parts);
-        }, $services);
-
-        $services = array_combine($serviceNames, $serviceNames);
+        $services = array_combine($services, $services);
 
         return $this->menu("Choose a service to connect to [{$cluster}]...", $services)->open();
     }
@@ -191,21 +182,7 @@ class AwsEcsConnect extends BaseCommand
             return $this->lastPartArn($task);
         }, $tasks);
 
-        // No point asking if we only have 1
-        if (count($tasks) === 1) {
-            return $tasks[0];
-        }
-
-        // Make the menu have nicer names
-        $taskId = array_map(function ($service) {
-            $parts = explode('/', $service);
-            unset($parts[0]);
-            unset($parts[1]);
-
-            return implode('/', $parts);
-        }, $tasks);
-
-        $tasks = array_combine($taskId, $taskId);
+        $tasks = array_combine($tasks, $tasks);
 
         return $this->menu("Choose a task to connect to... [{$cluster} > {$service}]", $tasks)->open();
     }
