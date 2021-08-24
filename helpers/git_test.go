@@ -14,6 +14,10 @@ func setGitDir(t *testing.T, dir string) {
 }
 
 func TestShaNoRepo(t *testing.T) {
+
+	// This is not the simple.git folder on purpose
+	setGitDir(t, "./fixtures")
+
 	sha := GetCurrentSha()
 	if sha != "" {
 		t.Errorf("Expected empty string, got %s", sha)
