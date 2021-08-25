@@ -4,6 +4,7 @@ import (
 	"os"
 
 	"github.com/netsells/cli/helpers"
+	"github.com/netsells/cli/helpers/aws"
 	"github.com/netsells/cli/helpers/aws/ecr"
 	"github.com/netsells/cli/helpers/cliio"
 	"github.com/spf13/cobra"
@@ -18,7 +19,7 @@ var dockerLoginCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(dockerLoginCmd)
 
-	dockerLoginCmd.Flags().String("aws-region", "", "AWS region")
+	aws.RegisterCommonFlags(dockerLoginCmd)
 }
 
 func runDockerLoginCmd(cmd *cobra.Command, args []string) {

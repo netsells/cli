@@ -4,6 +4,7 @@ import (
 	"os"
 
 	"github.com/netsells/cli/helpers"
+	"github.com/netsells/cli/helpers/aws"
 	"github.com/netsells/cli/helpers/aws/ecr"
 	"github.com/netsells/cli/helpers/cliio"
 	"github.com/netsells/cli/helpers/config"
@@ -26,7 +27,8 @@ var dockerBuildCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(dockerBuildCmd)
 
-	dockerBuildCmd.Flags().String("aws-region", "", "AWS region")
+	aws.RegisterCommonFlags(dockerBuildCmd)
+
 	dockerBuildCmd.Flags().String("tag", helpers.GetCurrentSha(), "The tag that should be built with the images. Defaults to the current commit SHA")
 	dockerBuildCmd.Flags().String("tag-prefix", "", "The tag prefix that should be built with the images. Defaults to null")
 	dockerBuildCmd.Flags().String("environment", "", "The destination environment for the images")

@@ -22,6 +22,10 @@ func GetAwsRegion() string {
 	return getString("aws-region", "docker.aws.region", "eu-west-2")
 }
 
+func GetAwsProfile() string {
+	return getString("aws-profile", "", "")
+}
+
 func GetAwsAccountId() string {
 	return getString("aws-account-id", "docker.aws.account-id", "422860057079")
 }
