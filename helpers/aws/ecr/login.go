@@ -25,7 +25,8 @@ func AuthenticateDocker() error {
 
 	cliio.LogDebugf("Got ECR password: %s", token)
 
-	repoHostname := fmt.Sprintf("%s.dkr.ecr.%s.amazonaws.com", config.GetAwsAccountId(), config.GetAwsRegion())
+	// Making use of GetAwsAccountIdDefault and GetCallerAccountId so we can auto detect the ID when not provided
+	repoHostname := fmt.Sprintf("%s.dkr.ecr.%s.amazonaws.com", config.GetAwsAccountIdDefault(sts.GetCallerAccountId()), config.GetAwsRegion())
 	currentUser := sts.GetCallerArn()
 
 	cliio.Lines([]string{

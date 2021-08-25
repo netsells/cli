@@ -35,3 +35,13 @@ func GetCallerArn() string {
 
 	return ""
 }
+
+func GetCallerAccountId() string {
+	identity, err := GetCallerIdentity()
+
+	if err == nil {
+		return *identity.Account
+	}
+
+	return ""
+}

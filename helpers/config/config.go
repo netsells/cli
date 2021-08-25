@@ -27,7 +27,11 @@ func GetAwsProfile() string {
 }
 
 func GetAwsAccountId() string {
-	return getString("aws-account-id", "docker.aws.account-id", "422860057079")
+	return getString("aws-account-id", "docker.aws.account-id", "")
+}
+
+func GetAwsAccountIdDefault(defaultId string) string {
+	return getString("aws-account-id", "docker.aws.account-id", defaultId)
 }
 
 func GetDockerServices() []string {
