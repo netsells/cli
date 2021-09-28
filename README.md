@@ -11,10 +11,10 @@ The Netsells Command Line Interface (CLI).
 Run the following commands to download and install. `/usr/local/bin` should be in your `$PATH` in order to call `netsells` anywhere.
 
 ```bash
-curl -L -o netsells.phar https://netsells-cli.now.sh/download/cli
-mv netsells.phar /usr/local/bin/netsells
+curl -L -o netsells.phar https://github.com/netsells/cli/releases/latest/download/netsells.phar
+sudo mv netsells.phar /usr/local/bin/netsells
 chmod +x /usr/local/bin/netsells
-netsells
+netsells --version
 ```
 
 ### Usage
