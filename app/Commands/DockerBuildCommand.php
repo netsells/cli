@@ -28,6 +28,8 @@ class DockerBuildCommand extends BaseCommand
             new DockerOption('tag', null, DockerOption::VALUE_OPTIONAL, 'The tag that should be built with the images. Defaults to the current commit SHA', $this->helpers->git()->currentSha()),
             new DockerOption('tag-prefix', null, DockerOption::VALUE_OPTIONAL, 'The tag prefix that should be built with the images. Defaults to null'),
             new InputOption('environment', null, InputOption::VALUE_OPTIONAL, 'The destination environment for the images'),
+
+            // TODO: This is currently broken and will not fall back to the netsells file correctly
             new DockerOption('service', null, DockerOption::VALUE_OPTIONAL | DockerOption::VALUE_IS_ARRAY, 'The service that should be built. Not defining this will push all services', []),
         ], $this->helpers->aws()->commonConsoleOptions()));
     }
@@ -53,7 +55,8 @@ class DockerBuildCommand extends BaseCommand
 
         $tag = $this->helpers->docker()->prefixedTag();
 
-        $services = $this->option('service');
+        $services = $this->option('service', []);
+        $services = !is_array($services) ? [$services] : $services;
 
         $loginSuccessful = $this->helpers->aws()->ecs()->authenticateDocker();
 
