@@ -86,16 +86,8 @@ class DockerBuildCommand extends BaseCommand
 
     protected function callBuild(string $tag, string $service = null): bool
     {
-        // Filter ensures we don't send a null value in the array
-        $commandParts = array_filter([
-            'docker-compose',
-            '-f', 'docker-compose.yml',
-            '-f', 'docker-compose.prod.yml',
-            'build', '--no-cache', $service
-        ]);
-
         try {
-            $this->helpers->process()->withCommand($commandParts)
+            $this->helpers->process()->withCommand($this->buildCommandParts($service))
             ->withEnvironmentVars(['TAG' => $tag])
             ->withTimeout(1200) // 20mins
             ->echoLineByLineOutput(true)
@@ -106,5 +98,43 @@ class DockerBuildCommand extends BaseCommand
         }
 
         return true;
+    }
+
+    protected function buildCommandParts(string $service = null): array
+    {
+        $composeVersion = $this->determineComposeVersion();
+
+        // Conservatively implement 2.0.0 functionality - some params are duplicated to ensure future compatability
+        if ($composeVersion >= '2.0.0' && $composeVersion < '2.1.0') {
+            return array_filter([
+                'docker', 'compose',
+                '-f', 'docker-compose.yml',
+                '-f', 'docker-compose.prod.yml',
+                'build', '--no-cache', $service
+            ]);
+        }
+
+        return array_filter([
+            'docker-compose',
+            '-f', 'docker-compose.yml',
+            '-f', 'docker-compose.prod.yml',
+            'build', '--no-cache', $service
+        ]);
+    }
+
+    protected function determineComposeVersion(): string
+    {
+        try {
+            preg_match(
+                '/(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)/',
+                $this->helpers->process()->withCommand(['docker-compose', '-v'])->run(),
+                $versionMatches
+            );
+
+            return $versionMatches[0];
+        } catch (ProcessFailed $e) {
+            // We couldn't determine the docker-compose version, so lets fall back to standard functionality
+            return false;
+        }
     }
 }
