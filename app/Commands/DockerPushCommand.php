@@ -65,7 +65,10 @@ class DockerPushCommand extends BaseCommand
         if (count($services) == 0) {
             // Generic full file build as we have no services
             $this->line("Pushing docker images for all services with tags " . implode(', ', $tags));
-            $this->callPush($tags);
+            if (!$this->callPush($tags)) {
+                $this->error("Unable to push images.");
+                return 1;
+            }
         } else {
             // We've been provided services, we'll run the command for each
             $this->line(sprintf(
@@ -89,7 +92,7 @@ class DockerPushCommand extends BaseCommand
         // We need to make the new tags first
         $sourceTag = $this->helpers->docker()->prefixedTag();
         if (!$this->helpers->docker()->tagImages($service, $sourceTag, $tags)) {
-            return 1;
+            return false;
         }
 
         foreach ($tags as $tag) {

@@ -69,6 +69,9 @@ class DockerBuildCommand extends BaseCommand
             $this->line("Building docker images for all services with tag {$tag}");
             if ($this->callBuild($tag)) {
                 return $this->info("Docker images built.");
+            } else {
+                $this->error("Docker images failed to build.");
+                return 1;
             }
         }
 
