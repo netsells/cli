@@ -31,7 +31,7 @@ class Ec2
             $processOutput = $this->aws->newProcess($commandOptions)
             ->run();
         } catch (ProcessFailed $e) {
-            $this->command->error("Unable to list ec2 instances");
+            $this->aws->getCommand()->error("Unable to list ec2 instances");
             return null;
         }
 
