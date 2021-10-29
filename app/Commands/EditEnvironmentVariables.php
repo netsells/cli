@@ -31,7 +31,7 @@ class EditEnvironmentVariables extends BaseCommand
     protected $serviceName;
     protected $taskDefinitionName;
 
-    private array $envFiles;
+    private array $envFiles = [];
 
     private string $fileName;
 
@@ -88,15 +88,19 @@ class EditEnvironmentVariables extends BaseCommand
 
     private function getMenuItem(string $bucket): ?int
     {
-        $this->envFiles = collect($this->helpers->aws()->s3()->listFiles($bucket))
-            ->pluck('Key')
-            ->map(function ($filename) {
-                return $filename;
-            })
-            ->reject(function ($filename) {
-                return !Str::endsWith($filename, '.env');
-            })
-            ->toArray();
+        $files = $this->helpers->aws()->s3()->listFiles($bucket);
+
+        if ($files) {
+            $this->envFiles = collect($files)
+                ->pluck('Key')
+                ->map(function ($filename) {
+                    return $filename;
+                })
+                ->reject(function ($filename) {
+                    return !Str::endsWith($filename, '.env');
+                })
+                ->toArray();
+        }
 
         $additionalMenuOptions = ['Create new file'];
         $callerArn = $this->helpers->aws()->iam()->getCallerArn();

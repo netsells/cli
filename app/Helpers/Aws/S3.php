@@ -17,7 +17,7 @@ class S3
         $this->aws = $aws;
     }
 
-    public function listFiles(string $bucketName): array
+    public function listFiles(string $bucketName): ?array
     {
         $client = new S3Client($this->aws->standardSdkArguments());
 
