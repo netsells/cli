@@ -167,6 +167,10 @@ class DeployEcsServiceUpdate extends BaseCommand
         // Seperate out the tags we want from the target images
         return collect($images)
             ->filter(function ($image) use ($targetImages) {
+                if (!str_contains($image, ':')) {
+                    return false;
+                }
+
                 [$image, $tag] = explode(':', $image);
 
                 return in_array($image, $targetImages);
