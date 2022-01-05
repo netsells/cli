@@ -105,10 +105,10 @@ class DockerBuildCommand extends BaseCommand
 
     protected function buildCommandParts(string $service = null): array
     {
-        $composeVersion = $this->determineComposeVersion();
+        $composeVersion = $this->helpers->docker()->determineComposeVersion();
 
         // Conservatively implement 2.0.0 functionality - some params are duplicated to ensure future compatability
-        if ($composeVersion >= '2.0.0' && $composeVersion < '2.1.0') {
+        if ($composeVersion >= '2.0.0') {
             return array_filter([
                 'docker', 'compose',
                 '-f', 'docker-compose.yml',
@@ -125,19 +125,5 @@ class DockerBuildCommand extends BaseCommand
         ]);
     }
 
-    protected function determineComposeVersion(): string
-    {
-        try {
-            preg_match(
-                '/(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)/',
-                $this->helpers->process()->withCommand(['docker-compose', '-v'])->run(),
-                $versionMatches
-            );
 
-            return $versionMatches[0];
-        } catch (ProcessFailed $e) {
-            // We couldn't determine the docker-compose version, so lets fall back to standard functionality
-            return false;
-        }
-    }
 }

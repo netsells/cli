@@ -18,6 +18,22 @@ class Docker extends BaseHelper
         $this->helpers = $helpers;
     }
 
+    public function determineComposeVersion(): string
+    {
+        try {
+            preg_match(
+                '/(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)/',
+                $this->helpers->process()->withCommand(['docker-compose', '-v'])->run(),
+                $versionMatches
+            );
+
+            return $versionMatches[0];
+        } catch (ProcessFailed $e) {
+            // We couldn't determine the docker-compose version, so lets fall back to standard functionality
+            return '1.0.0';
+        }
+    }
+
     public function tagImages(?string $service, string $sourceTag, array $newTags): bool
     {
         $services = $this->getImageUrlsForServices($service ? [$service] : []);
@@ -116,14 +132,28 @@ class Docker extends BaseHelper
     public function fetchComposeConfig(): ?array
     {
         try {
-            $dockerComposeYml = $this->helpers->process()->withCommand([
-                'docker-compose',
-                '-f', 'docker-compose.yml',
-                '-f', 'docker-compose.prod.yml',
-                '--log-level', 'ERROR',
-                'config',
-            ])
-            ->run();
+
+            $composeVersion = $this->determineComposeVersion();
+
+            // Conservatively implement 2.0.0 functionality - some params are duplicated to ensure future compatability
+            if ($composeVersion >= '2.0.0') {
+                $dockerComposeYml = $this->helpers->process()->withCommand([
+                    'docker', 'compose',
+                    '-f', 'docker-compose.yml',
+                    '-f', 'docker-compose.prod.yml',
+                    'config',
+                ])
+                ->run();
+            } else {
+                $dockerComposeYml = $this->helpers->process()->withCommand([
+                    'docker-compose',
+                    '-f', 'docker-compose.yml',
+                    '-f', 'docker-compose.prod.yml',
+                    '--log-level', 'ERROR',
+                    'config',
+                ])
+                ->run();
+            }
         } catch (ProcessFailed $e) {
             $this->command->error("Unable to get generated config from docker-compose.");
             return null;
