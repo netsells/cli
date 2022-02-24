@@ -159,34 +159,6 @@ class Ecs
         return json_decode($processOutput, true);
     }
 
-    public function runTaskWithCommand(string $clusterName, string $taskDefinition, array $migrateCommand, string $container): void
-    {
-        $overrides = json_encode([
-            'containerOverrides' => [
-                [
-                    'name' => $container,
-                    'command' => $migrateCommand,
-                ]
-            ]
-        ]);
-
-
-        try {
-            $this->aws->newProcess([
-                'ecs', 'run-task',
-                "--cluster={$clusterName}",
-                "--overrides={$overrides}",
-                "--task-definition={$taskDefinition}",
-            ])
-            ->run();
-        } catch (ProcessFailed $e) {
-            $this->aws->getCommand()->error("Unable to start migration task in AWS.");
-            return;
-        }
-
-        return;
-    }
-
     public function startCommandExecution(string $cluster, string $taskId, string $containerName, string $shellCommand): Process
     {
         return $this->aws->newProcess([

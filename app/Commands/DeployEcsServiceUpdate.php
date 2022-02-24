@@ -3,7 +3,6 @@
 namespace App\Commands;
 
 use App\Commands\Console\DockerOption;
-use App\Commands\Console\InputOption;
 
 class DeployEcsServiceUpdate extends BaseCommand
 {
@@ -28,16 +27,10 @@ class DeployEcsServiceUpdate extends BaseCommand
     public function configure()
     {
         $this->setDefinition(array_merge([
-            new DockerOption('tag', null, DockerOption::VALUE_OPTIONAL, 'The tag that should be built with the images. Defaults to the current commit SHA', $this->helpers->git()->currentSha()),
-            new DockerOption('tag-prefix', null, DockerOption::VALUE_OPTIONAL, 'The tag prefix that should be built with the images. Defaults to null'),
             new DockerOption('ecs-service', null, DockerOption::VALUE_OPTIONAL, 'The ECS service name'),
             new DockerOption('ecs-cluster', null, DockerOption::VALUE_OPTIONAL, 'The ECS cluster name'),
             new DockerOption('ecs-task-definition', null, DockerOption::VALUE_OPTIONAL, 'The ECS task definition name'),
-            new DockerOption('migrate-container', null, DockerOption::VALUE_OPTIONAL, 'The container to run the migration on'),
-            new DockerOption('migrate-command', null, DockerOption::VALUE_OPTIONAL, 'The migration command to run'),
-            new DockerOption('service', null, DockerOption::VALUE_OPTIONAL | DockerOption::VALUE_IS_ARRAY, 'The service that should be deployed. Not defining this will deploy all services in .netsells.yml', []),
-            new InputOption('environment', null, InputOption::VALUE_OPTIONAL, 'The destination environment for the images'),
-        ], $this->helpers->aws()->commonConsoleOptions()));
+        ], $this->helpers->aws()->commonDockerOptions(), $this->helpers->aws()->commonConsoleOptions()));
     }
 
     /**
@@ -89,41 +82,7 @@ class DeployEcsServiceUpdate extends BaseCommand
         $this->helpers->aws()->ecs()->updateService($this->clusterName, $this->serviceName, $newTaskDefinitionString);
         $this->line("Service updated to task definition {$newTaskDefinitionString}");
 
-        $migrateCommand = $this->option('migrate-command');
-        $migrateContainer = $this->option('migrate-container');
-
-        if ($migrateCommand && $migrateContainer) {
-            $this->error('The migrate option will be deprecated in the next major version.');
-            $this->line("Migrate command detected, running as a one-off task.");
-
-            $this->runMigrateCommand($migrateCommand, $newTaskDefinitionString, $migrateContainer);
-        }
-
         $this->info("Successfully deployed to ECS, deployment can be seen at " . $this->generateDeploymentUrl());
-    }
-
-    protected function runMigrateCommand($migrateCommand, string $newTaskDefinitionString, string $container): void
-    {
-        $consts = [
-            'LARAVEL_DATABASE_MIGRATIONS' => ['php', 'artisan', 'migrate', '--force'],
-        ];
-
-        if (is_string($migrateCommand)) {
-            foreach ($consts as $const => $value) {
-                if ($migrateCommand === $const) {
-                    $migrateCommand = $value;
-                    continue;
-                }
-            }
-        }
-
-        $this->helpers->aws()->ecs()->runTaskWithCommand(
-            $this,
-            $this->clusterName,
-            $newTaskDefinitionString,
-            $migrateCommand,
-            $container
-        );
     }
 
     protected function prepareNewTaskDefinitionRevisionString($newTaskDefinition): string
