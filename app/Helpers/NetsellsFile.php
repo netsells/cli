@@ -14,8 +14,6 @@ class NetsellsFile
     public const DOCKER_ECS_SERVICE = 'docker.aws.ecs.service';
     public const DOCKER_ECS_CLUSTER = 'docker.aws.ecs.cluster';
     public const DOCKER_ECS_TASK_DEFINITION = 'docker.aws.ecs.task-definition';
-    public const DOCKER_ECS_MIGRATE_COMMAND = 'docker.aws.ecs.migrate.command';
-    public const DOCKER_ECS_MIGRATE_CONTAINER = 'docker.aws.ecs.migrate.container';
 
     protected $fileName = '.netsells.yml';
     protected $fileData = null;
