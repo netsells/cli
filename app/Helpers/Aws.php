@@ -100,7 +100,7 @@ class Aws extends BaseHelper
         return $return;
     }
 
-    public static function commonConsoleOptions(): array
+    public function commonConsoleOptions(): array
     {
         return [
             new DockerOption('aws-region', null, InputOption::VALUE_OPTIONAL, 'Override the default AWS region', Aws::DEFAULT_REGION),
@@ -109,4 +109,13 @@ class Aws extends BaseHelper
         ];
     }
 
+    public function commonDockerOptions(): array
+    {
+        return [
+            new DockerOption('tag', null, DockerOption::VALUE_OPTIONAL, 'The tag that should be used for the images. Defaults to the current commit SHA', $this->helpers->git()->currentSha()),
+            new DockerOption('tag-prefix', null, DockerOption::VALUE_OPTIONAL, 'The tag prefix that should be used for the images. Defaults to null'),
+            new DockerOption('service', null, DockerOption::VALUE_OPTIONAL | DockerOption::VALUE_IS_ARRAY, 'One or more services that should be dealt with. Not defining this will fallback to services defined in the .netsells.yml config file, and if not defined, will consider all services.', []),
+            new InputOption('environment', null, InputOption::VALUE_OPTIONAL, 'The destination environment for the images'),
+        ];
+    }
 }

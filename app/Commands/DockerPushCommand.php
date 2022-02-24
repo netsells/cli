@@ -3,7 +3,6 @@
 namespace App\Commands;
 
 use App\Exceptions\ProcessFailed;
-use App\Commands\Console\InputOption;
 use App\Commands\Console\DockerOption;
 
 class DockerPushCommand extends BaseCommand
@@ -25,12 +24,8 @@ class DockerPushCommand extends BaseCommand
     public function configure()
     {
         $this->setDefinition(array_merge([
-            new DockerOption('tag', null, DockerOption::VALUE_OPTIONAL, 'The tag that should be built with the images. Defaults to the current commit SHA', $this->helpers->git()->currentSha()),
-            new DockerOption('tag-prefix', null, DockerOption::VALUE_OPTIONAL, 'The tag prefix that should be built with the images. Defaults to null'),
-            new InputOption('environment', null, InputOption::VALUE_OPTIONAL, 'The destination environment for the images'),
             new DockerOption('skip-additional-tags', null, DockerOption::VALUE_NONE, 'Skips the latest and environment tags'),
-            new DockerOption('service', null, DockerOption::VALUE_OPTIONAL | DockerOption::VALUE_IS_ARRAY, 'The service that should be pushed. Not defining this will push all services', []),
-        ], $this->helpers->aws()->commonConsoleOptions()));
+        ], $this->helpers->aws()->commonDockerOptions(), $this->helpers->aws()->commonConsoleOptions()));
     }
 
     /**

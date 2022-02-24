@@ -20,9 +20,38 @@ class NetsellsFile
     protected $fileName = '.netsells.yml';
     protected $fileData = null;
 
+    protected static $instance = null;
+
     public function __construct()
     {
         $this->detectAndParseNetsellsFile();
+    }
+
+    public static function getInstance(): self
+    {
+        if (static::$instance) {
+            return static::$instance;
+        }
+
+        return static::$instance = new static();
+    }
+
+    public function get($keyPath, $default = null)
+    {
+        if (!$this->hasValidNetsellsFile()) {
+            return $default;
+        }
+
+        return Arr::get($this->fileData, $keyPath, $default);
+    }
+
+    public function has($keyPath): bool
+    {
+        if (!$this->hasValidNetsellsFile()) {
+            return false;
+        }
+
+        return Arr::has($this->fileData, $keyPath);
     }
 
     protected function detectAndParseNetsellsFile(): void
@@ -36,17 +65,12 @@ class NetsellsFile
         try {
             $this->fileData = Yaml::parse($fileContents);
         } catch (ParseException $exception) {
-            // Leave $this->fileData null
+            $this->fileData = null;
         }
     }
 
     protected function hasValidNetsellsFile(): bool
     {
-        return is_null($this->fileData);
-    }
-
-    public function get($keyPath, $default = null)
-    {
-        return Arr::get($this->fileData, $keyPath, $default);
+        return $this->fileData !== null;
     }
 }
