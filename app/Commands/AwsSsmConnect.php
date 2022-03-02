@@ -44,7 +44,7 @@ class AwsSsmConnect extends BaseCommand
      */
     public function handle()
     {
-        $requiredBinaries = ['aws', 'ssh'];
+        $requiredBinaries = ['aws', 'ssh', 'ssh-keygen'];
 
         if ($this->helpers->checks()->checkAndReportMissingBinaries($requiredBinaries)) {
             return 1;
@@ -65,24 +65,11 @@ class AwsSsmConnect extends BaseCommand
         $rebuildOptions = $this->appendResolvedArgument($rebuildOptions, 'aws-profile');
         $rebuildOptions = $this->appendResolvedArgument($rebuildOptions, 'aws-region');
 
-        $key = $this->generateTempSshKey();
-        $command = $this->generateRemoteCommand($username, $key);
-
-        $this->info("Sending a temporary SSH key to the server...", OutputInterface::VERBOSITY_VERBOSE);
-        if (!$this->helpers->aws()->ssm()->sendRemoteCommand($instanceId, $command)) {
-            $this->error('Failed to send SSH key to server');
-            return 1;
-        }
-
-        $sessionCommand = $this->helpers->aws()->ssm()->startSessionProcess($instanceId);
-        $sessionCommandString = implode(' ', $sessionCommand->getArguments());
-
         $options = [
             '-o', 'IdentityFile ~/.ssh/netsells-cli-ssm-ssh-tmp',
             '-o', 'IdentitiesOnly yes',
             '-o', 'GSSAPIAuthentication no',
             '-o', 'PasswordAuthentication no',
-            '-o', "ProxyCommand {$sessionCommandString}",
         ];
 
         if ($this->option('tunnel')) {
@@ -99,7 +86,22 @@ class AwsSsmConnect extends BaseCommand
             $rebuildOptions = $this->appendResolvedArgument($rebuildOptions, 'tunnel-remote-server', $tunnelRemoteServer);
             $rebuildOptions = $this->appendResolvedArgument($rebuildOptions, 'tunnel-remote-port', $tunnelRemotePort);
             $rebuildOptions = $this->appendResolvedArgument($rebuildOptions, 'tunnel-local-port', $tunnelLocalPort);
+        }
 
+        $command = $this->generateRemoteCommand($username, $this->generateTempSshKey());
+
+        $this->info("Sending a temporary SSH key to the server...", OutputInterface::VERBOSITY_VERBOSE);
+        if (!$this->helpers->aws()->ssm()->sendRemoteCommand($instanceId, $command)) {
+            $this->error('Failed to send SSH key to server');
+            return 1;
+        }
+
+        $sessionCommand = $this->helpers->aws()->ssm()->startSessionProcess($instanceId);
+        $sessionCommandString = implode(' ', $sessionCommand->getArguments());
+
+        array_unshift($options, '-o', "ProxyCommand {$sessionCommandString}");
+
+        if ($this->option('tunnel')) {
             $this->sendReRunHelper($rebuildOptions);
 
             $this->info("Establishing an SSH tunnel connection with {$instanceId}, this may take a few seconds...");
@@ -191,12 +193,6 @@ class AwsSsmConnect extends BaseCommand
 
     private function generateTempSshKey()
     {
-        $requiredBinaries = ['aws', 'ssh', 'ssh-keygen'];
-
-        if ($this->helpers->checks()->checkAndReportMissingBinaries($requiredBinaries)) {
-            return 1;
-        }
-
         $sshDir = $_SERVER['HOME'] . '/.ssh/';
         $keyName = $sshDir . $this->tempKeyName;
         $pubKeyName = "{$keyName}.pub";

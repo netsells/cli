@@ -58,4 +58,5 @@ return [
     ],
 
     'editor' => env('EDITOR', '/usr/bin/vi'),
+    'shell' => env('SHELL', 'bash')
 ];
