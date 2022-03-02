@@ -19,7 +19,7 @@ class AwsAssumeRole extends BaseCommand
      *
      * @var string
      */
-    protected $description = 'Handles MFA Login';
+    protected $description = 'Allows to assume a role in selected AWS account.';
 
     public function configure()
     {
@@ -42,12 +42,22 @@ class AwsAssumeRole extends BaseCommand
 
         $accountId = $this->menu("Choose an account to connect to...", array_combine($accounts->pluck('id')->all(), $accounts->pluck('name')->all()))->open();
 
+        if (!$accountId) {
+            $this->info('No account selected, exiting.');
+            return 0;
+        }
+
         $account = $accounts->firstWhere('id', $accountId);
         $accountName = $account['name'];
 
         $roles = collect($this->helpers->aws()->s3()->getJsonFile('netsells-security-meta', 'roles.json')['roles'])->pluck('name')->all();
 
         $role = $this->menu("Choose a role to assume...", array_combine($roles, $roles))->open();
+
+        if (!$role) {
+            $this->info('No role selected, exiting.');
+            return 0;
+        }
 
         $callerArn = $this->helpers->aws()->iam()->getCallerArn();
         $sessionUser = 'unknown.user';
@@ -65,7 +75,7 @@ class AwsAssumeRole extends BaseCommand
                 $mfaDevice = $this->askForMfaDevice($this);
 
                 if (!$mfaDevice) {
-                    $this->info("Access was denied assuming role {$role}. We tried to initiate an MFA session but you have no devices available for user {$sessionUser}.");
+                    $this->error("Access was denied assuming role {$role}. We tried to initiate an MFA session but you have no devices available for user {$sessionUser}.");
                     return 1;
                 }
 
@@ -80,13 +90,14 @@ class AwsAssumeRole extends BaseCommand
             }
         }
 
-        $assumePrompt = "{$sessionUser}:{$accountName}";
-
-        $envVars['AWS_S3_ENV'] = $account['s3env'];
-
         $this->info("Now opening a session following you ({$sessionUser}) assuming the role {$role} on {$accountName} ({$accountId}) . Type `exit` to leave this shell.");
-        Process::fromShellCommandline("BASH_SILENCE_DEPRECATION_WARNING=1 PS1='\e[32mnscli\e[34m({$assumePrompt})$\e[39m ' bash")
-            ->setEnv($envVars)
+
+        (new Process([config('app.shell')]))
+            ->setEnv(array_merge($envVars, [
+                'AWS_S3_ENV' => $account['s3env'],
+                'BASH_SILENCE_DEPRECATION_WARNING' => '1',
+                'PS1' => "\e[32mnscli\e[34m({$sessionUser}:{$accountName})$\e[39m ",
+            ]))
             ->setTty(Process::isTtySupported())
             ->setIdleTimeout(null)
             ->setTimeout(null)

@@ -3,6 +3,7 @@
 namespace App\Commands;
 
 use Symfony\Component\Process\Process;
+
 class AwsMfaLogin extends BaseCommand
 {
     /**
@@ -50,8 +51,12 @@ class AwsMfaLogin extends BaseCommand
         $envVars = $this->helpers->aws()->iam()->authenticateWithMfaDevice($mfaDevice, $code);
 
         $this->info("Now opening a session following your MFA authentication. Type `exit` to leave this shell.");
-        Process::fromShellCommandline("BASH_SILENCE_DEPRECATION_WARNING=1 PS1='\e[32mnscli\e[34m(mfa-authd)$\e[39m ' bash")
-            ->setEnv($envVars)
+
+        (new Process([config('app.shell')]))
+            ->setEnv(array_merge($envVars, [
+                'BASH_SILENCE_DEPRECATION_WARNING' => '1',
+                'PS1' => "\e[32mnscli\e[34m(mfa-authd)$\e[39m ",
+            ]))
             ->setTty(Process::isTtySupported())
             ->setIdleTimeout(null)
             ->setTimeout(null)
