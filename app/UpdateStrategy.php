@@ -2,11 +2,16 @@
 
 namespace App;
 
+use Humbug;
+use Humbug\SelfUpdate\Exception\HttpRequestException;
 use Humbug\SelfUpdate\Updater;
 use LaravelZero\Framework\Components\Updater\Strategy\StrategyInterface;
 
 class UpdateStrategy implements StrategyInterface
 {
+    private const GITHUB_LATEST_RELEASE_URL = 'https://github.com/netsells/cli/releases/latest/download/netsells.phar';
+    private const GITHUB_SPECIFIC_RELEASE_PATTERN = '/download\/([^\/]+)\/netsells\.phar/';
+
     /**
      * @var string
      */
@@ -15,17 +20,7 @@ class UpdateStrategy implements StrategyInterface
     /**
      * @var string
      */
-    private $remoteVersion;
-
-    /**
-     * @var string
-     */
     private $remoteUrl;
-
-    /**
-     * @var string
-     */
-    private $pharName;
 
     /**
      * @var string
@@ -42,8 +37,9 @@ class UpdateStrategy implements StrategyInterface
     {
         /** Switch remote request errors to HttpRequestExceptions */
         set_error_handler(array($updater, 'throwHttpRequestException'));
-        $result = humbug_get_contents($this->remoteUrl);
+        $result = Humbug\get_contents($this->remoteUrl);
         restore_error_handler();
+        
         if (false === $result) {
             throw new HttpRequestException(sprintf(
                 'Request to URL failed: %s', $this->remoteUrl
@@ -62,29 +58,33 @@ class UpdateStrategy implements StrategyInterface
     public function getCurrentRemoteVersion(Updater $updater)
     {
         /** Switch remote request errors to HttpRequestExceptions */
-        set_error_handler(array($updater, 'throwHttpRequestException'));
-        $versionUrl = 'https://netsells-cli.now.sh/version';
-        $version = json_decode(humbug_get_contents($versionUrl), true);
+        set_error_handler([$updater, 'throwHttpRequestException']);
+
+        // we want to make a HEAD request
+        // just to get the location header from github to the specific latest version
+        $context = stream_context_create([
+            'http' => [
+                'method' => 'HEAD',
+                'follow_location' => 0,
+            ],
+        ]);
+
+        $headers = get_headers(self::GITHUB_LATEST_RELEASE_URL, true, $context);
 
         restore_error_handler();
 
-        if (null === $version || json_last_error() !== JSON_ERROR_NONE) {
-            throw new JsonParsingException(
-                'Error parsing JSON package data'
-                . (function_exists('json_last_error_msg') ? ': ' . json_last_error_msg() : '')
-            );
+        if (!is_array($headers) || !isset($headers['Location'])) {
+            return false;
+        }
+        
+        $this->remoteUrl = $headers['Location'];
+
+        if (preg_match(self::GITHUB_SPECIFIC_RELEASE_PATTERN, $this->remoteUrl, $matches) !== 1 || count($matches) !== 2 || empty($matches[1])) {
+            return false;
         }
 
-        $this->remoteVersion = $version['version'];
-
-        /**
-         * Setup remote URL if there's an actual version to download
-         */
-        if (!empty($this->remoteVersion)) {
-            $this->remoteUrl = 'https://netsells-cli.now.sh/download/cli';
-        }
-
-        return $this->remoteVersion;
+        // contains the matched version, e.g. v2.3.1
+        return $matches[1];
     }
 
     /**
