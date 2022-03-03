@@ -56,7 +56,4 @@ return [
     'providers' => [
         App\Providers\AppServiceProvider::class,
     ],
-
-    'editor' => env('EDITOR', '/usr/bin/vi'),
-    'shell' => env('SHELL', 'bash')
 ];

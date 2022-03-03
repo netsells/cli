@@ -92,7 +92,7 @@ class AwsAssumeRole extends BaseCommand
 
         $this->info("Now opening a session following you ({$sessionUser}) assuming the role {$role} on {$accountName} ({$accountId}) . Type `exit` to leave this shell.");
 
-        (new Process([config('app.shell')]))
+        (new Process([env('SHELL', 'bash')]))
             ->setEnv(array_merge($envVars, [
                 'AWS_S3_ENV' => $account['s3env'],
                 'BASH_SILENCE_DEPRECATION_WARNING' => '1',
