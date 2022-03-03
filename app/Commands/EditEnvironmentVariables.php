@@ -36,6 +36,8 @@ class EditEnvironmentVariables extends BaseCommand
 
     private string $fileContents;
 
+    private string $editor;
+
     public function configure()
     {
         $this->setDefinition(array_merge([
@@ -50,7 +52,9 @@ class EditEnvironmentVariables extends BaseCommand
      */
     public function handle()
     {
-        $requiredBinaries = ['aws', config('app.editor')];
+        $this->editor = env('EDITOR', '/usr/bin/vi');
+
+        $requiredBinaries = ['aws', $this->editor];
 
         if ($this->helpers->checks()->checkAndReportMissingBinaries($requiredBinaries)) {
             exit(1);
@@ -143,7 +147,7 @@ class EditEnvironmentVariables extends BaseCommand
             case -1:
                 die('Unable to run editor');
             case 0:
-                pcntl_exec(config('app.editor'), ['/tmp/' . $this->fileName]);
+                pcntl_exec($this->editor, ['/tmp/' . $this->fileName]);
                 break;
             default:
                 pcntl_waitpid($pid, $status);

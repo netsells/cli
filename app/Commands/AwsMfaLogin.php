@@ -50,9 +50,14 @@ class AwsMfaLogin extends BaseCommand
 
         $envVars = $this->helpers->aws()->iam()->authenticateWithMfaDevice($mfaDevice, $code);
 
+        if (empty($envVars)) {
+            $this->error("Unable to authenicate MFA");
+            return 1;
+        }
+
         $this->info("Now opening a session following your MFA authentication. Type `exit` to leave this shell.");
 
-        (new Process([config('app.shell')]))
+        (new Process([env('SHELL', 'bash')]))
             ->setEnv(array_merge($envVars, [
                 'BASH_SILENCE_DEPRECATION_WARNING' => '1',
                 'PS1' => "\e[32mnscli\e[34m(mfa-authd)$\e[39m ",
