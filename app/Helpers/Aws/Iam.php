@@ -59,14 +59,18 @@ class Iam
         ];
 
         try {
-            $processOutput = $this->aws->newProcess($commandOptions)
-            ->run();
+            $processOutput = $this->aws->newProcess($commandOptions)->run();
         } catch (ProcessFailed $e) {
-            $this->command->error("Unable to authenicate MFA");
-            return null;
+            return [];
         }
 
-        return json_decode($processOutput, true);
+        $result = json_decode($processOutput, true);
+
+        return [
+            'AWS_ACCESS_KEY_ID' => $result['Credentials']['AccessKeyId'],
+            'AWS_SECRET_ACCESS_KEY' => $result['Credentials']['SecretAccessKey'],
+            'AWS_SESSION_TOKEN' => $result['Credentials']['SessionToken'],
+        ];
     }
 
     public function assumeRole(int $accountId, string $role, string $sessionUser, ?string $mfaDevice = null, ?string $mfaCode = null): array
