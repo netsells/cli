@@ -110,6 +110,21 @@ class Ecs
         return json_decode($processOutput, true);
     }
 
+    public function describeTasks(string $clusterName, string $serviceName, array $taskIds = []): ?array
+    {
+        try {
+            $processOutput = $this->aws->newProcess(array_merge([
+                'ecs', 'describe-tasks', '--cluster', $clusterName, '--query', 'tasks', '--tasks',
+            ], $taskIds))
+            ->run();
+        } catch (ProcessFailed $e) {
+            $this->aws->getCommand()->error("Unable to describe tasks [{$clusterName} - {$serviceName}] from AWS.");
+            return null;
+        }
+
+        return json_decode($processOutput, true);
+    }
+
     public function listContainers(string $clusterName, string $taskId): ?array
     {
         try {

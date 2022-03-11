@@ -172,17 +172,22 @@ class AwsEcsConnect extends BaseCommand
     protected function askForTask($cluster, $service)
     {
         $tasks = $this->helpers->aws()->ecs()->listTasks($cluster, $service);
+        $tasks = $this->helpers->aws()->ecs()->describeTasks($cluster, $service, $tasks);
 
         if (is_null($tasks)) {
             $this->error("Could not get tasks.");
             return;
         }
 
-        $tasks = array_map(function ($task) {
-            return $this->lastPartArn($task);
+        $taskKeys = array_map(function ($task) {
+            return $this->lastPartArn($task['taskArn']);
         }, $tasks);
 
-        $tasks = array_combine($tasks, $tasks);
+        $taskValues = array_map(function ($task) {
+            return '[' . $this->lastPartArn($task['taskArn']) . '] ' . $this->lastPartArn($task['taskDefinitionArn']) . ' (' . $task['lastStatus'] . ')';
+        }, $tasks);
+
+        $tasks = array_combine($taskKeys, $taskValues);
 
         return $this->menu("Choose a task to connect to... [{$cluster} > {$service}]", $tasks)->open();
     }
