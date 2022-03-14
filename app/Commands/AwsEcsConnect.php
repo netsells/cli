@@ -172,10 +172,16 @@ class AwsEcsConnect extends BaseCommand
     protected function askForTask($cluster, $service)
     {
         $tasks = $this->helpers->aws()->ecs()->listTasks($cluster, $service);
-        $tasks = $this->helpers->aws()->ecs()->describeTasks($cluster, $service, $tasks);
 
         if (is_null($tasks)) {
             $this->error("Could not get tasks.");
+            return;
+        }
+
+        $tasks = $this->helpers->aws()->ecs()->describeTasks($cluster, $service, $tasks);
+
+        if (is_null($tasks)) {
+            $this->error("Could not get task info.");
             return;
         }
 
@@ -184,12 +190,21 @@ class AwsEcsConnect extends BaseCommand
         }, $tasks);
 
         $taskValues = array_map(function ($task) {
-            return '[' . $this->lastPartArn($task['taskArn']) . '] ' . $this->lastPartArn($task['taskDefinitionArn']) . ' (' . $task['lastStatus'] . ')';
+            return '[' . $this->lastPartArn($task['taskArn']) . '] ' . $this->lastPartArn($task['taskDefinitionArn']) . ' (' . $this->determineTaskStatusString($task) . ')';
         }, $tasks);
 
         $tasks = array_combine($taskKeys, $taskValues);
 
         return $this->menu("Choose a task to connect to... [{$cluster} > {$service}]", $tasks)->open();
+    }
+
+    protected function determineTaskStatusString($task)
+    {
+        if ($task['lastStatus'] === $task['desiredStatus']) {
+            return $task['lastStatus'];
+        }
+
+        return $task['lastStatus'] . ' -> ' . $task['desiredStatus'];
     }
 
     protected function askForContainer($cluster, $service, $task)
