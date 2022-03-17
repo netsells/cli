@@ -2,7 +2,6 @@
 
 namespace App;
 
-use Humbug;
 use Humbug\SelfUpdate\Exception\HttpRequestException;
 use Humbug\SelfUpdate\Updater;
 use LaravelZero\Framework\Components\Updater\Strategy\StrategyInterface;
@@ -36,13 +35,13 @@ class UpdateStrategy implements StrategyInterface
     public function download(Updater $updater)
     {
         /** Switch remote request errors to HttpRequestExceptions */
-        set_error_handler(array($updater, 'throwHttpRequestException'));
-        $result = Humbug\get_contents($this->remoteUrl);
+        set_error_handler([$updater, 'throwHttpRequestException']);
+        $result = file_get_contents($this->remoteUrl);
         restore_error_handler();
-        
         if (false === $result) {
             throw new HttpRequestException(sprintf(
-                'Request to URL failed: %s', $this->remoteUrl
+                'Request to URL failed: %s',
+                $this->remoteUrl
             ));
         }
 

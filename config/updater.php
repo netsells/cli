@@ -1,7 +1,5 @@
 <?php
 
-use LaravelZero\Framework\Components\Updater\Strategy\GitHubReleasesStrategy;
-
 return [
 
     /*
