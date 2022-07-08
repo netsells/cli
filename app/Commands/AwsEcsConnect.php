@@ -178,13 +178,33 @@ class AwsEcsConnect extends BaseCommand
             return;
         }
 
-        $tasks = array_map(function ($task) {
-            return $this->lastPartArn($task);
+        $tasks = $this->helpers->aws()->ecs()->describeTasks($cluster, $service, $tasks);
+
+        if (is_null($tasks)) {
+            $this->error("Could not get task info.");
+            return;
+        }
+
+        $taskKeys = array_map(function ($task) {
+            return $this->lastPartArn($task['taskArn']);
         }, $tasks);
 
-        $tasks = array_combine($tasks, $tasks);
+        $taskValues = array_map(function ($task) {
+            return '[' . $this->lastPartArn($task['taskArn']) . '] ' . $this->lastPartArn($task['taskDefinitionArn']) . ' (' . $this->determineTaskStatusString($task) . ')';
+        }, $tasks);
+
+        $tasks = array_combine($taskKeys, $taskValues);
 
         return $this->menu("Choose a task to connect to... [{$cluster} > {$service}]", $tasks)->open();
+    }
+
+    protected function determineTaskStatusString($task)
+    {
+        if ($task['lastStatus'] === $task['desiredStatus']) {
+            return $task['lastStatus'];
+        }
+
+        return $task['lastStatus'] . ' -> ' . $task['desiredStatus'];
     }
 
     protected function askForContainer($cluster, $service, $task)
