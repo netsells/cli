@@ -26,10 +26,6 @@ class EditEnvironmentVariables extends BaseCommand
     /** @var Helpers $helpers */
     protected $helpers;
 
-    protected $clusterName;
-    protected $serviceName;
-    protected $taskDefinitionName;
-
     private array $envFiles = [];
 
     private string $fileName;
@@ -41,7 +37,7 @@ class EditEnvironmentVariables extends BaseCommand
     public function configure()
     {
         $this->setDefinition(array_merge([
-            new InputOption('s3-bucket-name', null, InputOption::VALUE_OPTIONAL, 'The client to edit the environment variables for'),
+            new InputOption('s3-bucket-name', null, InputOption::VALUE_OPTIONAL, 'The bucket holding the files with environment variables.'),
         ], $this->helpers->aws()->commonConsoleOptions()));
     }
 
@@ -60,7 +56,7 @@ class EditEnvironmentVariables extends BaseCommand
             exit(1);
         }
 
-        $bucket = $this->option('s3-bucket-name') ?? getenv('AWS_S3_ENV');
+        $bucket = $this->selectBucket();
 
         if (!$bucket) {
             $this->error('An S3 bucket for the environment variable files must be specified. Calling aws:assume-role will do this automatically for you.');
@@ -70,6 +66,23 @@ class EditEnvironmentVariables extends BaseCommand
         $this->processUpdate($bucket);
 
         exit(0);
+    }
+
+    private function selectBucket(): ?string
+    {
+        $bucket = $this->option('s3-bucket-name') ?? getenv('AWS_S3_ENV');
+
+        if ($bucket) {
+            return $bucket;
+        }
+
+        $buckets = $this->helpers->aws()->s3()->listBuckets();
+
+        if (!$buckets) {
+            return null;
+        }
+
+        return $this->menu('Choose a bucket to open...', array_combine($buckets, $buckets))->open();
     }
 
     private function processUpdate(string $bucket): void
@@ -168,7 +181,7 @@ class EditEnvironmentVariables extends BaseCommand
 
         $this->info("Changes made\n");
         $this->comment('---------------------------------------------');
-        echo($diff);
+        echo $diff;
         $this->comment('---------------------------------------------');
         $this->newLine();
 

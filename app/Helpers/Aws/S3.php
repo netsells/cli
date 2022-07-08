@@ -5,7 +5,6 @@ namespace App\Helpers\Aws;
 use App\Helpers\Aws;
 use Aws\Result;
 use Aws\S3\S3Client;
-use LaravelZero\Framework\Commands\Command;
 
 class S3
 {
@@ -15,6 +14,18 @@ class S3
     public function __construct(Aws $aws)
     {
         $this->aws = $aws;
+    }
+
+    /**
+     * Returns a list of bucket names available to the current user.
+     *
+     * @return string[] a list of bucket names
+     */
+    public function listBuckets(): array
+    {
+        $client = new S3Client($this->aws->standardSdkArguments());
+
+        return array_column($client->listBuckets()->get('Buckets') ?? [], 'Name');
     }
 
     public function listFiles(string $bucketName): ?array
