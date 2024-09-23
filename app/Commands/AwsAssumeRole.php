@@ -40,7 +40,12 @@ class AwsAssumeRole extends BaseCommand
             return 1;
         }
 
-        $accountId = $this->menu("Choose an account to connect to...", array_combine($accounts->pluck('id')->all(), $accounts->pluck('name')->all()))->open();
+        $accountId = $this->menu("Choose an account to connect to...", array_combine(
+            $accounts->pluck('id')->map(function ($id) {
+                return (string) $id;
+            })->all(),
+            $accounts->pluck('name')->all()
+        ))->open();
 
         if (!$accountId) {
             $this->info('No account selected, exiting.');

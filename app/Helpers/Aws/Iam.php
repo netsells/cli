@@ -73,7 +73,7 @@ class Iam
         ];
     }
 
-    public function assumeRole(int $accountId, string $role, string $sessionUser, ?string $mfaDevice = null, ?string $mfaCode = null): array
+    public function assumeRole(string $accountId, string $role, string $sessionUser, ?string $mfaDevice = null, ?string $mfaCode = null): array
     {
         $client = new StsClient($this->aws->standardSdkArguments());
 
